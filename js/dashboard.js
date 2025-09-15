@@ -1,3 +1,9 @@
+// API 키 설정
+const API_KEYS = {
+    kakao_js: '1ac6eee9b1e4c2e0cc6f1d1ca1a6a559',
+    // Firebase 설정은 나중에 추가
+};
+
 // Firebase 설정 (실제 설정값으로 교체 필요)
 const firebaseConfig = {
     // Firebase 프로젝트 설정이 여기에 들어갑니다
