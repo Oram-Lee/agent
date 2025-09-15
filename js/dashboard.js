@@ -117,21 +117,142 @@ function initializeCharts() {
 // 대시보드 데이터 로드
 async function loadDashboardData() {
     try {
-        // 실제 Firebase 연결시 주석 해제
-        // const snapshot = await db.collection('companies').get();
-        // const companies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // 실제 수집 데이터 로드
+        const response = await fetch('dashboard_data.json');
+        if (response.ok) {
+            const data = await response.json();
+            const companies = data.companies || [];
+            console.log('✅ 실제 데이터 로드 성공:', companies.length + '개 기업');
+            updateDashboardWithRealData(data, companies);
+        } else {
+            // 백업: 더미 데이터 사용
+            console.log('⚠️ 실제 데이터 로드 실패, 더미 데이터 사용');
+            const companies = generateDummyData();
+            updateStatusCards(companies);
+            updateCompanyList(companies);
+        }
         
-        // 임시 더미 데이터
-        const companies = generateDummyData();
-        
-        updateStatusCards(companies);
-        updateCompanyList(companies);
-        updateLastUpdateTime();
         
     } catch (error) {
         console.error('데이터 로드 실패:', error);
         showError('데이터를 불러오는데 실패했습니다.');
     }
+}
+
+// 실제 데이터로 대시보드 업데이트
+function updateDashboardWithRealData(data, companies) {
+    // 메타데이터에서 통계 정보 추출
+    const metadata = data.summary || {};
+    
+    // 실제 데이터로 상태 카드 업데이트
+    updateStatusCardsReal(metadata, companies);
+    
+    // 실제 데이터로 회사 리스트 업데이트
+    updateCompanyListReal(companies);
+    
+    // 차트 데이터 업데이트
+    updateChartsWithRealData(companies);
+    
+    updateLastUpdateTime(metadata.collection_date);
+}
+
+// 실제 데이터로 상태 카드 업데이트
+function updateStatusCardsReal(metadata, companies) {
+    const total = companies.length;
+    const highRisk = companies.filter(c => c.risk_score >= 70).length;
+    const collectionProgress = 100; // 수집 완료
+    
+    document.getElementById('analyzedCompanies').textContent = total;
+    document.getElementById('totalCompanies').textContent = total;
+    document.getElementById('highRiskCompanies').textContent = highRisk;
+    document.getElementById('collectionProgress').textContent = collectionProgress;
+    
+    // 진행률 차트 업데이트
+    progressChart.data.datasets[0].data = [collectionProgress, 100 - collectionProgress];
+    progressChart.update();
+    
+    // 수집 상태 업데이트
+    document.getElementById('collectionStatus').textContent = '완료';
+    document.getElementById('statusSpinner').style.display = 'none';
+}
+
+// 실제 데이터로 회사 리스트 업데이트
+function updateCompanyListReal(companies) {
+    const listContainer = document.getElementById('companyList');
+    listContainer.innerHTML = '';
+    
+    // 위험도 순으로 정렬 (이미 정렬되어 있음)
+    companies.slice(0, 12).forEach(company => {
+        const card = createCompanyCardReal(company);
+        listContainer.appendChild(card);
+    });
+}
+
+// 실제 데이터로 회사 카드 생성
+function createCompanyCardReal(company) {
+    const col = document.createElement('div');
+    col.className = 'col-md-4 mb-3';
+    
+    const riskClass = company.risk_score >= 70 ? 'high-risk' : 
+                     company.risk_score >= 40 ? 'medium-risk' : 'low-risk';
+    
+    // 주요 신호 생성
+    const signals = [];
+    const counts = company.data_counts || {};
+    
+    if (counts.naver_news > 0) signals.push(`뉴스 ${counts.naver_news}건`);
+    if (counts.google_results > 0) signals.push(`검색 ${counts.google_results}건`);
+    if (counts.dart_office > 0) signals.push(`공시 ${counts.dart_office}건`);
+    
+    col.innerHTML = `
+        <div class="card company-card ${riskClass}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h6 class="card-title">${company.name}</h6>
+                    <span class="badge bg-primary">${company.risk_score}%</span>
+                </div>
+                <p class="card-text small text-muted">IT/소프트웨어</p>
+                <div class="mb-2">
+                    <small class="text-muted">예측:</small><br>
+                    <strong>${company.prediction || '분석 중'}</strong>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">수집 데이터:</small><br>
+                    <small>${signals.slice(0, 2).join(', ') || '데이터 없음'}</small>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">수집: ${formatDate(company.last_update)}</small>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewDetailsReal('${company.name}')">
+                        상세보기
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return col;
+}
+
+// 실제 데이터로 차트 업데이트
+function updateChartsWithRealData(companies) {
+    // 월별 추이 차트 (임시 데이터)
+    const monthlyData = [12, 19, 3, 5, companies.length, 8];
+    monthlyChart.data.datasets[0].data = monthlyData;
+    monthlyChart.update();
+    
+    // 위험도별 분포
+    const highRisk = companies.filter(c => c.risk_score >= 70).length;
+    const mediumRisk = companies.filter(c => c.risk_score >= 40 && c.risk_score < 70).length;
+    const lowRisk = companies.filter(c => c.risk_score < 40).length;
+    
+    industryChart.data.labels = ['고위험', '중위험', '저위험'];
+    industryChart.data.datasets[0].data = [
+        (highRisk / companies.length * 100).toFixed(1),
+        (mediumRisk / companies.length * 100).toFixed(1),
+        (lowRisk / companies.length * 100).toFixed(1)
+    ];
+    industryChart.data.datasets[0].backgroundColor = ['#dc3545', '#ffc107', '#28a745'];
+    industryChart.update();
 }
 
 // 상태 카드 업데이트
