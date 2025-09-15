@@ -192,8 +192,8 @@ class OfficeRelocationPredictor:
             query = f"{company} 사옥 OR 오피스 OR 임대"
             
             headers = {
-                'X-Naver-Client-Id': self.api_keys['naver_client_id'],
-                'X-Naver-Client-Secret': self.api_keys['naver_client_secret']
+                'X-Naver-Client-Id': self.api_keys['naver_blog_client_id'],
+                'X-Naver-Client-Secret': self.api_keys['naver_blog_client_secret']
             }
             
             params = {
@@ -334,11 +334,15 @@ class OfficeRelocationPredictor:
 if __name__ == "__main__":
     # API 키 설정
     api_keys = {
-        'naver_client_id': 'YOUR_NAVER_CLIENT_ID',
-        'naver_client_secret': 'YOUR_NAVER_CLIENT_SECRET',
-        'google_api_key': 'YOUR_GOOGLE_API_KEY',
-        'google_search_engine_id': 'YOUR_SEARCH_ENGINE_ID',
-        'dart_api_key': 'YOUR_DART_API_KEY'
+        'naver_client_id': 'MRrqB4usbuuk9uuXzZDM',
+        'naver_client_secret': 'Yoionk4bGp',
+        'naver_blog_client_id': '7kbgK3Fi__DX0_cnJOEp',
+        'naver_blog_client_secret': 'QyfsHO2dIk',
+        'google_api_key': 'AIzaSyBNDjMJqJnzpJKc3Hnfq2yh40UTkWPFmJU',
+        'google_search_engine_id': '0623a984354754d30',
+        'dart_api_key': '416dbd4f88fd71c98204eec5b5502a4daf8045cd',
+        'kakao_js_key': '1ac6eee9b1e4c2e0cc6f1d1ca1a6a559',
+        'kakao_rest_key': '202b072045892b48df4f5c0f5d813d7d'
     }
     
     # 타겟 기업 리스트

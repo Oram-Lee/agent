@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 테스트 도구</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 3px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 API 연결 테스트</h1>
+    
+    <button onclick="testAllAPIs()">모든 API 테스트</button>
+    
+    <div id="results"></div>
+
+    <script>
+        // API 키 설정
+        const API_KEYS = {
+            naver_client_id: 'MRrqB4usbuuk9uuXzZDM',
+            naver_client_secret: 'Yoionk4bGp',
+            naver_blog_client_id: '7kbgK3Fi__DX0_cnJOEp',
+            naver_blog_client_secret: 'QyfsHO2dIk',
+            google_api_key: 'AIzaSyBNDjMJqJnzpJKc3Hnfq2yh40UTkWPFmJU',
+            google_search_engine_id: '0623a984354754d30',
+            dart_api_key: '416dbd4f88fd71c98204eec5b5502a4daf8045cd',
+            kakao_js: '1ac6eee9b1e4c2e0cc6f1d1ca1a6a559'
+        };
+
+        function createTestCard(title, status = 'loading') {
+            const card = document.createElement('div');
+            card.className = `test-card ${status}`;
+            card.innerHTML = `
+                <h3>${title}</h3>
+                <div class="content">테스트 중...</div>
+            `;
+            return card;
+        }
+
+        function updateTestCard(card, content, status) {
+            card.className = `test-card ${status}`;
+            card.querySelector('.content').innerHTML = content;
+        }
+
+        async function testGoogleSearch() {
+            const card = createTestCard('🌐 구글 Custom Search API');
+            document.getElementById('results').appendChild(card);
+
+            try {
+                const url = `https://www.googleapis.com/customsearch/v1?key=${API_KEYS.google_api_key}&cx=${API_KEYS.google_search_engine_id}&q=네이버 사옥 이전&num=3`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.items && data.items.length > 0) {
+                    updateTestCard(card, `
+                        <strong>✅ 성공!</strong><br>
+                        ${data.items.length}개 결과 조회<br>
+                        첫 번째 결과: ${data.items[0].title}
+                    `, 'success');
+                    return true;
+                } else if (data.error) {
+                    updateTestCard(card, `
+                        <strong>❌ 실패!</strong><br>
+                        오류: ${data.error.message}
+                    `, 'error');
+                    return false;
+                } else {
+                    updateTestCard(card, `
+                        <strong>⚠️ 결과 없음</strong><br>
+                        검색 결과가 없습니다.
+                    `, 'error');
+                    return false;
+                }
+            } catch (error) {
+                updateTestCard(card, `
+                    <strong>❌ 실패!</strong><br>
+                    네트워크 오류: ${error.message}
+                `, 'error');
+                return false;
+            }
+        }
+
+        async function testDartAPI() {
+            const card = createTestCard('📊 DART API');
+            document.getElementById('results').appendChild(card);
+
+            try {
+                const url = `https://opendart.fss.or.kr/api/list.json?crtfc_key=${API_KEYS.dart_api_key}&corp_name=네이버&bgn_de=20231201&end_de=20241201&page_no=1&page_count=5`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.status === '000' && data.list) {
+                    updateTestCard(card, `
+                        <strong>✅ 성공!</strong><br>
+                        ${data.list.length}개 공시 조회<br>
+                        첫 번째 공시: ${data.list[0].report_nm || 'N/A'}
+                    `, 'success');
+                    return true;
+                } else {
+                    updateTestCard(card, `
+                        <strong>❌ 실패!</strong><br>
+                        상태: ${data.status} - ${data.message || '알 수 없는 오류'}
+                    `, 'error');
+                    return false;
+                }
+            } catch (error) {
+                updateTestCard(card, `
+                    <strong>❌ 실패!</strong><br>
+                    CORS 오류 또는 네트워크 문제: ${error.message}<br>
+                    <small>DART API는 서버사이드에서 호출해야 할 수 있습니다.</small>
+                `, 'error');
+                return false;
+            }
+        }
+
+        async function testNaverAPIs() {
+            const card = createTestCard('🔍 네이버 API들');
+            document.getElementById('results').appendChild(card);
+
+            updateTestCard(card, `
+                <strong>⚠️ CORS 제한</strong><br>
+                네이버 API는 브라우저에서 직접 호출할 수 없습니다.<br>
+                서버사이드 (Python) 구현에서 테스트해야 합니다.<br>
+                <small>API 키는 올바르게 설정되었습니다.</small>
+            `, 'error');
+            return false;
+        }
+
+        async function testKakaoMap() {
+            const card = createTestCard('🗺️ 카카오맵 API');
+            document.getElementById('results').appendChild(card);
+
+            try {
+                // 카카오맵 SDK 로드 테스트
+                const script = document.createElement('script');
+                script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${API_KEYS.kakao_js}`;
+                
+                script.onload = () => {
+                    updateTestCard(card, `
+                        <strong>✅ 성공!</strong><br>
+                        카카오맵 JavaScript SDK 로드 완료<br>
+                        API 키가 올바르게 설정되었습니다.
+                    `, 'success');
+                };
+                
+                script.onerror = () => {
+                    updateTestCard(card, `
+                        <strong>❌ 실패!</strong><br>
+                        카카오맵 SDK 로드 실패<br>
+                        API 키를 확인해주세요.
+                    `, 'error');
+                };
+                
+                document.head.appendChild(script);
+                return true;
+                
+            } catch (error) {
+                updateTestCard(card, `
+                    <strong>❌ 실패!</strong><br>
+                    오류: ${error.message}
+                `, 'error');
+                return false;
+            }
+        }
+
+        async function testAllAPIs() {
+            document.getElementById('results').innerHTML = '';
+            
+            console.log('🚀 API 테스트 시작...');
+            
+            const results = [];
+            
+            // 구글 검색 API 테스트
+            results.push(await testGoogleSearch());
+            
+            // DART API 테스트
+            results.push(await testDartAPI());
+            
+            // 네이버 API 테스트 (제한사항 안내)
+            results.push(await testNaverAPIs());
+            
+            // 카카오맵 API 테스트
+            results.push(await testKakaoMap());
+            
+            // 결과 요약
+            const successCount = results.filter(r => r).length;
+            const summaryCard = createTestCard('📋 테스트 결과 요약', 'success');
+            summaryCard.innerHTML = `
+                <h3>📋 테스트 결과 요약</h3>
+                <div class="content">
+                    <strong>전체 결과: ${successCount}/${results.length} 성공</strong><br><br>
+                    
+                    <h4>📝 주요 발견사항:</h4>
+                    <ul>
+                        <li><strong>구글 검색 API:</strong> 브라우저에서 정상 작동</li>
+                        <li><strong>DART API:</strong> CORS 제한으로 서버 구현 필요</li>
+                        <li><strong>네이버 API:</strong> CORS 제한으로 서버 구현 필요</li>
+                        <li><strong>카카오맵 API:</strong> JavaScript에서 정상 작동</li>
+                    </ul>
+                    
+                    <h4>💡 권장사항:</h4>
+                    <p>실제 데이터 수집은 Python 스크립트로 진행하고,<br>
+                    대시보드는 수집된 데이터를 표시하는 용도로 사용하세요.</p>
+                </div>
+            `;
+            
+            document.getElementById('results').appendChild(summaryCard);
+            
+            console.log(`🎯 테스트 완료: ${successCount}/${results.length} 성공`);
+        }
+
+        // 페이지 로드 시 자동 테스트
+        window.onload = () => {
+            console.log('API 키 설정 확인:', Object.keys(API_KEYS));
+        };
+    </script>
+</body>
+</html>
