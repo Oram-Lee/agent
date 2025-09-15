@@ -1,0 +1,102 @@
+{
+  "summary": {
+    "collection_date": "2025-09-15 09:47",
+    "total_companies": 7,
+    "risk_distribution": {
+      "high": 0,
+      "medium": 7,
+      "low": 0
+    },
+    "data_sources": {
+      "naver_news_total": 136,
+      "google_results_total": 70,
+      "dart_reports_total": 0
+    }
+  },
+  "companies": [
+    {
+      "name": "네이버",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "data_counts": {
+        "naver_news": 20,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 0
+      },
+      "last_update": "2025-09-15T09:46:03.661171"
+    },
+    {
+      "name": "카카오",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "data_counts": {
+        "naver_news": 20,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 0
+      },
+      "last_update": "2025-09-15T09:46:14.679158"
+    },
+    {
+      "name": "쿠팡",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "data_counts": {
+        "naver_news": 20,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 0
+      },
+      "last_update": "2025-09-15T09:46:26.157207"
+    },
+    {
+      "name": "하이브",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "data_counts": {
+        "naver_news": 20,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 0
+      },
+      "last_update": "2025-09-15T09:46:37.284093"
+    },
+    {
+      "name": "크래프톤",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "data_counts": {
+        "naver_news": 19,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 0
+      },
+      "last_update": "2025-09-15T09:46:48.404133"
+    },
+    {
+      "name": "삼성전자",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "data_counts": {
+        "naver_news": 19,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 0
+      },
+      "last_update": "2025-09-15T09:47:00.257474"
+    },
+    {
+      "name": "LG화학",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "data_counts": {
+        "naver_news": 18,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 0
+      },
+      "last_update": "2025-09-15T09:47:11.332769"
+    }
+  ]
+}
