@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(gh:*)",
+      "Bash(winget install:*)",
+      "Bash(git config:*)",
+      "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth login)",
+      "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth status)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth setup-git)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
