@@ -371,39 +371,63 @@ function searchCompanies() {
         companyName: document.getElementById('companyNameInput').value.trim()
     };
 
-    console.log('검색 조건:', filters);
+    console.log('🔍 검색 조건:', filters);
+    console.log('📋 전체 기업 수:', allCompanies.length);
 
     // 필터링 실행
-    filteredCompanies = allCompanies.filter(company => {
+    filteredCompanies = allCompanies.filter((company, index) => {
+        console.log(`\n🏢 기업 ${index + 1}: ${company.name}`);
+        console.log('  - 지역:', company.district);
+        console.log('  - 업종:', company.industry);
+        console.log('  - 임직원수:', company.employee_count);
+
         // 지역 필터링
-        if (filters.city && !company.district?.includes(filters.city)) {
-            return false;
-        }
-        if (filters.district && !company.district?.includes(filters.district)) {
-            return false;
-        }
-        if (filters.address && !company.district?.toLowerCase().includes(filters.address.toLowerCase())) {
-            return false;
+        if (filters.city) {
+            const cityMatch = company.district?.includes(filters.city);
+            console.log(`  - 시/도 필터 (${filters.city}):`, cityMatch);
+            if (!cityMatch) return false;
         }
 
-        // 업종 필터링
-        if (filters.industry && !company.industry?.toLowerCase().includes(filters.industry.toLowerCase())) {
-            return false;
+        if (filters.district) {
+            const districtMatch = company.district?.includes(filters.district);
+            console.log(`  - 구/군 필터 (${filters.district}):`, districtMatch);
+            if (!districtMatch) return false;
+        }
+
+        if (filters.address) {
+            const addressMatch = company.district?.toLowerCase().includes(filters.address.toLowerCase());
+            console.log(`  - 주소 필터 (${filters.address}):`, addressMatch);
+            if (!addressMatch) return false;
+        }
+
+        // 업종 필터링 (부분 매칭으로 개선)
+        if (filters.industry) {
+            const industryMatch = company.industry?.toLowerCase().includes(filters.industry.toLowerCase());
+            console.log(`  - 업종 필터 (${filters.industry}):`, industryMatch);
+            if (!industryMatch) return false;
         }
 
         // 임직원수 필터링
-        if (filters.employeeMin && company.employee_count < filters.employeeMin) {
-            return false;
+        if (filters.employeeMin) {
+            const minMatch = company.employee_count >= filters.employeeMin;
+            console.log(`  - 최소인원 필터 (>=${filters.employeeMin}):`, minMatch);
+            if (!minMatch) return false;
         }
-        if (filters.employeeMax && company.employee_count > filters.employeeMax) {
-            return false;
+
+        if (filters.employeeMax) {
+            const maxMatch = company.employee_count <= filters.employeeMax;
+            console.log(`  - 최대인원 필터 (<=${filters.employeeMax}):`, maxMatch);
+            if (!maxMatch) return false;
         }
 
         // 기업명 필터링
-        if (filters.companyName && !company.name?.toLowerCase().includes(filters.companyName.toLowerCase())) {
-            return false;
+        if (filters.companyName) {
+            const nameMatch = company.name?.toLowerCase().includes(filters.companyName.toLowerCase());
+            console.log(`  - 기업명 필터 (${filters.companyName}):`, nameMatch);
+            if (!nameMatch) return false;
         }
 
+        console.log('  ✅ 필터 통과!');
         return true;
     });
 
