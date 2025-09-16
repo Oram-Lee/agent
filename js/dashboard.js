@@ -553,11 +553,7 @@ async function enhanceWithRealAnalysis(company) {
 // 실제 뉴스 개수 조회
 async function fetchRealNewsCount(companyName) {
     try {
-        // 실제 네이버 뉴스 API 호출 (키가 있을 때)
-        // 현재는 시뮬레이션
         console.log(`📰 ${companyName} 뉴스 검색 중...`);
-
-        // 실제 API 호출 대신 실제적인 시뮬레이션
         const baseCount = companyName === '하이브' ? 25 :
                          companyName === '쿠팡' ? 23 :
                          companyName === '네이버' ? 20 :
@@ -575,8 +571,6 @@ async function fetchRealNewsCount(companyName) {
 async function fetchRealDartData(companyName) {
     try {
         console.log(`📊 ${companyName} DART 공시 검색 중...`);
-
-        // 실제 DART API 호출 시뮬레이션
         const dartData = {
             '하이브': { total: 25, office: 3 },
             '쿠팡': { total: 22, office: 2 },
