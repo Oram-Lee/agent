@@ -120,64 +120,84 @@ function updateCompanyListReal(companies) {
 // 실제 데이터로 회사 카드 생성
 function createCompanyCardReal(company) {
     const col = document.createElement('div');
-    col.className = 'col-md-6 mb-3';
+    col.className = 'col-lg-6 mb-4';
 
     // 기본 데이터 설정
     const companyName = company.name || '미상';
-    const district = company.district || '지역 정보 없음';
+    const address = company.address || company.district || '주소 정보 없음';
+    const addressDetail = company.address_detail || '';
     const employeeCount = company.employee_count ? company.employee_count.toLocaleString() : '정보 없음';
     const industry = company.industry || '업종 정보 없음';
-    const riskLevel = company.risk_score >= 70 ? 'high' : company.risk_score >= 40 ? 'medium' : 'low';
-    const riskColor = riskLevel === 'high' ? 'danger' : riskLevel === 'medium' ? 'warning' : 'success';
-    const riskText = riskLevel === 'high' ? '고위험' : riskLevel === 'medium' ? '중위험' : '저위험';
+    const website = company.website || '#';
+    const phone = company.phone || '연락처 정보 없음';
+    const email = company.email || '이메일 정보 없음';
+
+    // 위험도 용어 제거, 단순한 점수만 표시
+    const predictionText = company.prediction ? company.prediction.replace(/고위험|중위험|저위험/g, '').replace(/\s-\s/, '') : '분석 중';
 
     col.innerHTML = `
-        <div class="card company-card border-${riskColor} border-2">
+        <div class="card company-card h-100 shadow-sm">
             <div class="card-body">
-                <div class="row">
+                <div class="row mb-3">
                     <div class="col-8">
-                        <h6 class="card-title text-primary">${companyName}</h6>
-                        <span class="badge bg-${riskColor}">${riskText} (${company.risk_score}%)</span>
+                        <h5 class="card-title text-primary mb-1">${companyName}</h5>
+                        <span class="badge bg-info">${industry}</span>
                     </div>
                     <div class="col-4 text-end">
                         <small class="text-muted">마지막 업데이트</small><br>
-                        <small>${formatDate(company.last_update)}</small>
+                        <small class="text-secondary">${formatDate(company.last_update)}</small>
                     </div>
                 </div>
-                <hr class="my-2">
-                <div class="row mb-2">
-                    <div class="col-3">
-                        <strong>지역:</strong>
+
+                <div class="mb-3">
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <strong>📍 주소</strong>
+                            <div class="mt-1">
+                                <div class="text-dark">${address}</div>
+                                ${addressDetail ? `<small class="text-muted">${addressDetail}</small>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-9">
-                        <small>${district}</small>
+
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <strong>👥 임직원수</strong>
+                            <div class="text-info fw-bold">${employeeCount}명</div>
+                        </div>
+                        <div class="col-6">
+                            <strong>🌐 웹사이트</strong>
+                            <div>
+                                <a href="${website}" target="_blank" class="text-decoration-none small">
+                                    ${website !== '#' ? website.replace('https://', '').replace('http://', '') : '정보 없음'}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <strong>📞 대표전화</strong>
+                            <div class="small">${phone}</div>
+                        </div>
+                        <div class="col-6">
+                            <strong>📧 대표 이메일</strong>
+                            <div class="small">
+                                <a href="mailto:${email}" class="text-decoration-none">${email}</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <strong>📈 이전 예측</strong>
+                            <div class="text-muted small mt-1">${predictionText}</div>
+                        </div>
                     </div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-3">
-                        <strong>임직원수:</strong>
-                    </div>
-                    <div class="col-9">
-                        <strong class="text-info">${employeeCount}명</strong>
-                    </div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-3">
-                        <strong>업종:</strong>
-                    </div>
-                    <div class="col-9">
-                        <span class="badge bg-secondary">${industry}</span>
-                    </div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-3">
-                        <strong>예측:</strong>
-                    </div>
-                    <div class="col-9">
-                        <small class="text-muted">${company.prediction || '분석 중'}</small>
-                    </div>
-                </div>
-                <div class="d-flex justify-content-end mt-3">
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">분석 점수: ${company.risk_score || 0}%</small>
                     <button class="btn btn-sm btn-outline-primary" onclick="viewDetailsReal('${companyName}')">
                         상세보기
                     </button>
@@ -510,16 +530,106 @@ async function searchCompaniesByLocationAndIndustry(filters) {
 // 데모용 검색 결과 생성 (실제로는 API 응답 파싱)
 function generateMockSearchResults(searchTerm, type) {
     const mockCompanies = [
-        { name: '신진제약', industry: '바이오/제약', district: '서울특별시 강남구 역삼동', employee_count: 2800 },
-        { name: '호랑이소프트', industry: 'IT/소프트웨어', district: '서울특별시 강남구 논현동', employee_count: 420 },
-        { name: '대한물류', industry: '물류/운송', district: '경기도 고양시 덕양구', employee_count: 1200 },
-        { name: '스마트팩토리', industry: '제조업', district: '인천광역시 남동구', employee_count: 850 },
-        { name: '피닉스게임즈', industry: '게임/앱', district: '경기도 성남시 분당구', employee_count: 320 },
-        { name: '김씨판매', industry: '유통/소매', district: '부산광역시 해운대구', employee_count: 2100 },
-        { name: '그린에너지', industry: '에너지/환경', district: '대전광역시 유성구', employee_count: 180 },
-        { name: '메디케어플러스', industry: '의료/헬스케어', district: '서울특별시 서초구', employee_count: 680 },
-        { name: '딥러닝에듀', industry: '교육/연구', district: '서울특별시 마포구', employee_count: 95 },
-        { name: '하이테크삽단', industry: '건설/부동산', district: '경기도 용인시 기흥구', employee_count: 1500 }
+        {
+            name: '신진제약',
+            industry: '바이오/제약',
+            address: '서울특별시 강남구 테헤란로 152, 강남파이낸스센터 12층',
+            address_detail: '(지번) 서울특별시 강남구 역삼동 737-10',
+            employee_count: 2800,
+            website: 'https://www.shinjinpharm.co.kr',
+            phone: '02-1234-5678',
+            email: 'info@shinjinpharm.co.kr'
+        },
+        {
+            name: '호랑이소프트',
+            industry: 'IT/소프트웨어',
+            address: '서울특별시 강남구 봉은사로 524, 삼성플라자 8층',
+            address_detail: '(지번) 서울특별시 강남구 논현동 278-20',
+            employee_count: 420,
+            website: 'https://www.tigersoft.kr',
+            phone: '02-2345-6789',
+            email: 'contact@tigersoft.kr'
+        },
+        {
+            name: '대한물류',
+            industry: '물류/운송',
+            address: '경기도 고양시 덕양구 권율대로 570, 대한빌딩 3층',
+            address_detail: '(지번) 경기도 고양시 덕양구 화정동 1063-1',
+            employee_count: 1200,
+            website: 'https://www.daehanlogis.co.kr',
+            phone: '031-3456-7890',
+            email: 'info@daehanlogis.co.kr'
+        },
+        {
+            name: '스마트팩토리',
+            industry: '제조업',
+            address: '인천광역시 남동구 인주대로 593, 테크노파크 A동 205호',
+            address_detail: '(지번) 인천광역시 남동구 구월동 1138',
+            employee_count: 850,
+            website: 'https://www.smartfactory.com',
+            phone: '032-4567-8901',
+            email: 'smart@smartfactory.com'
+        },
+        {
+            name: '피닉스게임즈',
+            industry: '게임/앱',
+            address: '경기도 성남시 분당구 판교로 242, 아바나빌딩 6층',
+            address_detail: '(지번) 경기도 성남시 분당구 삼평동 681',
+            employee_count: 320,
+            website: 'https://www.phoenixgames.kr',
+            phone: '031-5678-9012',
+            email: 'dev@phoenixgames.kr'
+        },
+        {
+            name: '김씨판매',
+            industry: '유통/소매',
+            address: '부산광역시 해운대구 센텀남대로 35, 부산국제금융센터 21층',
+            address_detail: '(지번) 부산광역시 해운대구 우동 1411-1',
+            employee_count: 2100,
+            website: 'https://www.kimstore.co.kr',
+            phone: '051-6789-0123',
+            email: 'sales@kimstore.co.kr'
+        },
+        {
+            name: '그린에너지',
+            industry: '에너지/환경',
+            address: '대전광역시 유성구 대학로 291, 대덕밸리 에너지센터 4층',
+            address_detail: '(지번) 대전광역시 유성구 궁동 220-1',
+            employee_count: 180,
+            website: 'https://www.greenenergy.kr',
+            phone: '042-7890-1234',
+            email: 'green@greenenergy.kr'
+        },
+        {
+            name: '메디케어플러스',
+            industry: '의료/헬스케어',
+            address: '서울특별시 서초구 서초대로 77길 54, 서초타워 15층',
+            address_detail: '(지번) 서울특별시 서초구 서초동 1303-37',
+            employee_count: 680,
+            website: 'https://www.medicareplus.co.kr',
+            phone: '02-8901-2345',
+            email: 'care@medicareplus.co.kr'
+        },
+        {
+            name: '딥러닝에듀',
+            industry: '교육/연구',
+            address: '서울특별시 마포구 월드컵북로 21, 풍성빌딩 7층',
+            address_detail: '(지번) 서울특별시 마포구 상암동 1600',
+            employee_count: 95,
+            website: 'https://www.deepedu.kr',
+            phone: '02-9012-3456',
+            email: 'learn@deepedu.kr'
+        },
+        {
+            name: '하이테크건설',
+            industry: '건설/부동산',
+            address: '경기도 용인시 기흥구 용구대로 2738, 하이테크타워 본관 5층',
+            address_detail: '(지번) 경기도 용인시 기흥구 영덕동 1007',
+            employee_count: 1500,
+            website: 'https://www.hitech-const.co.kr',
+            phone: '031-0123-4567',
+            email: 'build@hitech-const.co.kr'
+        }
     ];
 
     // 검색어에 따라 필터링
@@ -569,11 +679,11 @@ async function analyzeRelocationRisk(company) {
 
     await new Promise(resolve => setTimeout(resolve, 500)); // 분석 시뮬레이션
 
-    const riskScore = Math.floor(Math.random() * 70) + 20; // 20-90% 위험도
+    const riskScore = Math.floor(Math.random() * 70) + 20; // 20-90% 분석 점수
     const predictions = [
-        '고위험 - 6개월 내 이전 가능성 높음',
-        '중위험 - 1년 내 이전 검토 가능',
-        '저위험 - 장기적 모니터링 필요'
+        '6개월 내 이전 가능성 높음',
+        '1년 내 이전 검토 가능',
+        '장기적 모니터링 필요'
     ];
 
     return {
