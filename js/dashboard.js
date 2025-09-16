@@ -541,34 +541,70 @@ async function fetchRealCompanies(filters) {
 
 // 실제 데이터에 필터 적용
 function applyFiltersToRealData(companies, filters) {
-    console.log('🔍 실제 데이터 필터 적용:', companies.length + '개 기업');
+    console.log('🔍 실제 데이터 필터 적용 시작:', companies.length + '개 기업');
+    console.log('🔍 적용할 필터:', filters);
 
-    return companies.filter(company => {
-        // 기업명 필터
-        if (filters.companyName && !company.name.toLowerCase().includes(filters.companyName.toLowerCase())) {
-            return false;
+    const filteredResults = companies.filter(company => {
+        console.log(`\n📋 기업 검토: ${company.name}`);
+        console.log(`   - 주소/지역: ${company.district || company.address}`);
+        console.log(`   - 업종: ${company.industry}`);
+        console.log(`   - 임직원수: ${company.employee_count}`);
+
+        // 기업명 필터 (정확한 일치)
+        if (filters.companyName) {
+            if (!company.name.toLowerCase().includes(filters.companyName.toLowerCase())) {
+                console.log(`   ❌ 기업명 필터 실패: "${filters.companyName}" not in "${company.name}"`);
+                return false;
+            }
+            console.log(`   ✅ 기업명 필터 통과`);
         }
 
-        // 지역 필터 (district 필드 사용)
-        if (filters.city && !company.district.includes(filters.city)) {
-            return false;
+        // 시/도 필터 (정확한 일치)
+        if (filters.city) {
+            const companyAddress = company.district || company.address || '';
+            if (!companyAddress.includes(filters.city)) {
+                console.log(`   ❌ 시/도 필터 실패: "${filters.city}" not in "${companyAddress}"`);
+                return false;
+            }
+            console.log(`   ✅ 시/도 필터 통과`);
         }
 
-        // 업종 필터
-        if (filters.industry && !company.industry.toLowerCase().includes(filters.industry.toLowerCase())) {
-            return false;
+        // 구/군 필터 (정확한 일치)
+        if (filters.district) {
+            const companyAddress = company.district || company.address || '';
+            if (!companyAddress.includes(filters.district)) {
+                console.log(`   ❌ 구/군 필터 실패: "${filters.district}" not in "${companyAddress}"`);
+                return false;
+            }
+            console.log(`   ✅ 구/군 필터 통과`);
+        }
+
+        // 업종 필터 (정확한 일치)
+        if (filters.industry) {
+            const companyIndustry = company.industry || '';
+            if (!companyIndustry.toLowerCase().includes(filters.industry.toLowerCase())) {
+                console.log(`   ❌ 업종 필터 실패: "${filters.industry}" not in "${companyIndustry}"`);
+                return false;
+            }
+            console.log(`   ✅ 업종 필터 통과`);
         }
 
         // 임직원 수 필터
         if (filters.employeeMin && company.employee_count < filters.employeeMin) {
+            console.log(`   ❌ 최소인원 필터 실패: ${company.employee_count} < ${filters.employeeMin}`);
             return false;
         }
         if (filters.employeeMax && company.employee_count > filters.employeeMax) {
+            console.log(`   ❌ 최대인원 필터 실패: ${company.employee_count} > ${filters.employeeMax}`);
             return false;
         }
 
+        console.log(`   ✅ ${company.name} 모든 필터 통과!`);
         return true;
     });
+
+    console.log(`\n🎯 필터링 완료: ${filteredResults.length}개 기업이 조건에 부합`);
+    return filteredResults;
 }
 
 // 실제 분석 데이터로 보강
@@ -666,10 +702,10 @@ async function fetchFromBusinessRegistryAPI(filters) {
     console.log('🏢 공공데이터포털 API 검색...');
 
     try {
-        // 실제 API 키가 있다면 실제 호출, 없다면 시뮬레이션
+        // 실제 API 키가 없으면 빈 배열 반환 (가짜 데이터 생성 안함)
         if (API_KEYS.business_registry === 'YOUR_BUSINESS_REGISTRY_API_KEY') {
-            // API 키가 없는 경우 시뮬레이션 데이터 반환
-            return generateSimulatedBusinessData(filters);
+            console.log('⚠️ 공공데이터포털 API 키가 설정되지 않았습니다.');
+            return [];
         }
 
         const params = new URLSearchParams({
@@ -690,7 +726,7 @@ async function fetchFromBusinessRegistryAPI(filters) {
 
     } catch (error) {
         console.error('사업자등록정보 API 오류:', error);
-        return generateSimulatedBusinessData(filters);
+        return [];
     }
 }
 
@@ -700,7 +736,8 @@ async function fetchFromDartAPI(filters) {
 
     try {
         if (API_KEYS.dart_api === 'YOUR_DART_API_KEY') {
-            return generateSimulatedDartData(filters);
+            console.log('⚠️ DART API 키가 설정되지 않았습니다.');
+            return [];
         }
 
         const params = new URLSearchParams({
@@ -720,7 +757,7 @@ async function fetchFromDartAPI(filters) {
 
     } catch (error) {
         console.error('DART API 오류:', error);
-        return generateSimulatedDartData(filters);
+        return [];
     }
 }
 
@@ -730,7 +767,8 @@ async function fetchCompaniesFromNewsAPI(filters) {
 
     try {
         if (API_KEYS.naver_search === 'YOUR_NAVER_SEARCH_API_KEY') {
-            return generateSimulatedNewsData(filters);
+            console.log('⚠️ 네이버 검색 API 키가 설정되지 않았습니다.');
+            return [];
         }
 
         const searchQuery = buildNewsSearchQuery(filters);
@@ -747,7 +785,7 @@ async function fetchCompaniesFromNewsAPI(filters) {
 
     } catch (error) {
         console.error('네이버 뉴스 API 오류:', error);
-        return generateSimulatedNewsData(filters);
+        return [];
     }
 }
 
@@ -992,133 +1030,77 @@ function populateEvidenceTable(company) {
     });
 }
 
-// 실제 근거 자료 생성
+// 실제 근거 자료 생성 (실제 API 데이터만 사용)
 function generateRealEvidence(company, dataCounts) {
+    console.log(`🔍 ${company.name} 근거 자료 생성 시작...`);
     const evidence = [];
-    const companyName = company.name;
 
-    // 실제 기업별 뉴스 자료
-    const realNewsData = {
-        '하이브': [
-            {
-                title: 'HYBE, 새 본사 이전 및 사옥 확장 계획 발표',
-                source: '한경닷컴',
-                date: '2024-11-20',
-                link: 'https://www.hankyung.com/finance/article/2024112000001'
-            },
-            {
-                title: 'HYBE 용산사옥 확장 및 새로운 상장 준비',
-                source: '연합뉴스',
-                date: '2024-11-15',
-                link: 'https://www.yna.co.kr/view/AKR20241115000000001'
-            }
-        ],
-        '쿠팡': [
-            {
-                title: '쿠팡, 송파 로지스틱 센터 확장 계획',
-                source: '매일경제',
-                date: '2024-12-01',
-                link: 'https://www.mk.co.kr/news/economy/10912345'
-            },
-            {
-                title: '쿠팡 새로운 기업 본사 지역 및 사옥 비용 분석',
-                source: '비즈니스워치',
-                date: '2024-11-28',
-                link: 'https://news.mk.co.kr/newsRead.php?no=1234567'
-            }
-        ],
-        '네이버': [
-            {
-                title: '네이버, 분당 본사 증축 및 스마트워크 확대',
-                source: '전자신문',
-                date: '2024-11-25',
-                link: 'https://www.etnews.com/20241125000001'
-            }
-        ],
-        '카카오': [
-            {
-                title: '카카오, 판교 사옥 추가 확장 및 AI 연구소 신설',
-                source: '아이티데일리',
-                date: '2024-12-05',
-                link: 'https://www.itdaily.kr/news/articleView.html?idxno=123456'
-            }
-        ]
-    };
+    // company 객체에서 실제 API 데이터 추출
+    console.log('📊 기업 데이터:', company);
 
-    // 실제 DART 공시 자료
-    const realDartData = {
-        '하이브': [
-            {
-                title: 'HYBE 사업보고서 (2024년 3분기)',
-                source: 'DART 전자공시',
-                date: '2024-11-14',
-                link: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20241114000123'
-            },
-            {
-                title: 'HYBE 전진자회사 임대차 계약 체결 공고',
-                source: 'DART 전자공시',
-                date: '2024-10-28',
-                link: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20241028000456'
-            }
-        ],
-        '쿠팡': [
-            {
-                title: '쿠팡 정기보고서 (2024년)',
-                source: 'DART 전자공시',
-                date: '2024-11-30',
-                link: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20241130000789'
-            }
-        ],
-        '네이버': [
-            {
-                title: '네이버 사업보고서 (2024년 3분기)',
-                source: 'DART 전자공시',
-                date: '2024-11-14',
-                link: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20241114000234'
-            }
-        ],
-        '카카오': [
-            {
-                title: '카카오 사업보고서 (2024년 3분기)',
-                source: 'DART 전자공시',
-                date: '2024-11-14',
-                link: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20241114000345'
-            }
-        ]
-    };
-
-    // 뉴스 자료 추가
-    if (realNewsData[companyName]) {
-        realNewsData[companyName].forEach(newsItem => {
-            evidence.push({
-                type: '뉴스',
-                ...newsItem
-            });
-        });
-    }
-
-    // DART 공시 자료 추가
-    if (realDartData[companyName]) {
-        realDartData[companyName].forEach(dartItem => {
-            evidence.push({
-                type: '공시',
-                ...dartItem
-            });
-        });
-    }
-
-    // 일반적인 업계 자료 추가
-    if (company.industry.includes('IT') || company.industry.includes('게임')) {
+    // 1. 실제 뉴스 데이터 (네이버 뉴스 API에서 받은 실제 링크)
+    if (company.news_source && company.news_source !== 'https://news.example.com/') {
         evidence.push({
-            type: '기타',
-            title: `${companyName} 새로운 기술 및 사업 확장 계획`,
-            source: 'IT조선',
-            date: '2024-11-10',
-            link: 'https://it.chosun.com/site/data/html_dir/2024/11/10/2024111000123.html'
+            type: '뉴스',
+            title: `${company.name} 관련 뉴스`,
+            source: '네이버 뉴스',
+            date: formatDate(company.last_update),
+            link: company.news_source
         });
+        console.log('✅ 실제 뉴스 링크 추가:', company.news_source);
     }
 
-    return evidence.slice(0, 8); // 최대 8개 항목
+    // 2. 실제 DART 공시 데이터 (DART API에서 받은 실제 rcept_no)
+    if (company.corp_code && company.source === 'dart') {
+        const dartLink = `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${company.rcept_no || company.corp_code}`;
+        evidence.push({
+            type: '공시',
+            title: `${company.name} 사업보고서`,
+            source: 'DART 전자공시',
+            date: formatDate(company.last_update),
+            link: dartLink
+        });
+        console.log('✅ 실제 DART 공시 링크 추가:', dartLink);
+    }
+
+    // 3. 공공데이터포털에서 받은 실제 데이터
+    if (company.source === 'business_registry' && company.business_number) {
+        evidence.push({
+            type: '사업자등록',
+            title: `${company.name} 사업자등록정보`,
+            source: '공공데이터포털',
+            date: formatDate(company.last_update),
+            link: 'https://www.data.go.kr/' // 공공데이터포털 메인
+        });
+        console.log('✅ 사업자등록정보 추가');
+    }
+
+    // 4. 카카오맵 검색 링크 (실제 주소 기반)
+    if (company.address || company.district) {
+        const address = company.address || company.district;
+        const mapLink = `https://map.kakao.com/link/search/${encodeURIComponent(company.name + ' ' + address)}`;
+        evidence.push({
+            type: '지도',
+            title: `${company.name} 위치 정보`,
+            source: '카카오맵',
+            date: formatDate(company.last_update),
+            link: mapLink
+        });
+        console.log('✅ 카카오맵 링크 추가:', mapLink);
+    }
+
+    console.log(`📋 ${company.name} 최종 근거 자료 개수: ${evidence.length}개`);
+
+    // 가짜 링크나 존재하지 않는 데이터 제외, 실제 링크만 반환
+    const validEvidence = evidence.filter(item =>
+        item.link &&
+        !item.link.includes('example.com') &&
+        !item.link.includes('fake') &&
+        item.link.startsWith('http')
+    );
+
+    console.log(`✅ 유효한 근거 자료 개수: ${validEvidence.length}개`);
+    return validEvidence.slice(0, 5); // 최대 5개 항목만
 }
 
 // 카카오맵 열기
@@ -1216,6 +1198,7 @@ function parseBusinessRegistryData(apiData) {
                 risk_score: Math.floor(Math.random() * 60) + 20,
                 prediction: '실시간 분석 중',
                 phone: item.p_nm || '연락처 정보 없음',
+                business_number: item.b_no, // 실제 사업자번호 저장
                 last_update: new Date().toISOString(),
                 source: 'business_registry'
             });
@@ -1246,6 +1229,7 @@ function parseDartData(apiData) {
                 risk_score: Math.floor(Math.random() * 50) + 30,
                 prediction: 'DART 공시 기반 분석 중',
                 corp_code: item.corp_code,
+                rcept_no: item.rcept_no, // 실제 공시 번호 저장
                 last_update: new Date().toISOString(),
                 source: 'dart'
             });
@@ -1284,7 +1268,8 @@ function extractCompaniesFromNews(newsData) {
                     employee_count: Math.floor(Math.random() * 2000) + 100,
                     risk_score: Math.floor(Math.random() * 70) + 10,
                     prediction: '뉴스 동향 기반 분석 중',
-                    news_source: item.originallink,
+                    news_source: item.originallink || item.link, // 실제 뉴스 링크만 저장
+                    news_title: item.title?.replace(/<[^>]*>/g, '') || '',
                     last_update: new Date().toISOString(),
                     source: 'news'
                 });
@@ -1338,75 +1323,6 @@ function extractDistrict(address) {
     return '지역 정보 추출 실패';
 }
 
-// 시뮬레이션 데이터 생성 함수들
-function generateSimulatedBusinessData(filters) {
-    console.log('🔄 사업자등록정보 시뮬레이션 데이터 생성...');
-
-    const simulatedCompanies = [
-        { name: '테크솔루션', industry: 'IT서비스', district: '서울특별시 강남구', employees: 150 },
-        { name: '이노베이션코퍼레이션', industry: '소프트웨어개발', district: '서울특별시 서초구', employees: 200 },
-        { name: '디지털미디어그룹', industry: '콘텐츠제작', district: '경기도 성남시', employees: 80 },
-        { name: '스마트로지스틱스', industry: '물류서비스', district: '인천광역시 연수구', employees: 300 },
-        { name: '클라우드시스템즈', industry: 'IT인프라', district: '서울특별시 용산구', employees: 120 }
-    ];
-
-    return simulatedCompanies.map(company => ({
-        ...company,
-        employee_count: company.employees,
-        address: company.district + ' (상세주소 조회 중)',
-        business_type: company.industry,
-        risk_score: Math.floor(Math.random() * 60) + 20,
-        prediction: '시뮬레이션 분석 결과',
-        phone: '02-' + Math.floor(Math.random() * 9000 + 1000) + '-' + Math.floor(Math.random() * 9000 + 1000),
-        last_update: new Date().toISOString(),
-        source: 'business_registry_sim'
-    }));
-}
-
-function generateSimulatedDartData(filters) {
-    console.log('🔄 DART 시뮬레이션 데이터 생성...');
-
-    const simulatedCompanies = [
-        { name: '한국전자통신', industry: '전자통신업', district: '서울특별시 금천구', employees: 850 },
-        { name: '바이오메딕스', industry: '바이오의약품', district: '경기도 안양시', employees: 450 },
-        { name: '그린에너지솔루션', industry: '신재생에너지', district: '울산광역시 남구', employees: 320 },
-        { name: '스마트팩토리', industry: '제조업자동화', district: '경상남도 창원시', employees: 180 }
-    ];
-
-    return simulatedCompanies.map(company => ({
-        ...company,
-        employee_count: company.employees,
-        address: company.district + ' (DART 등록 주소)',
-        business_type: '상장기업',
-        risk_score: Math.floor(Math.random() * 50) + 30,
-        prediction: 'DART 공시 기반 분석',
-        corp_code: 'SIM' + Math.floor(Math.random() * 100000),
-        last_update: new Date().toISOString(),
-        source: 'dart_sim'
-    }));
-}
-
-function generateSimulatedNewsData(filters) {
-    console.log('🔄 뉴스 시뮬레이션 데이터 생성...');
-
-    const simulatedCompanies = [
-        { name: '퓨처테크', industry: '인공지능', district: '서울특별시 강남구', employees: 95 },
-        { name: '모빌리티플러스', industry: '자율주행', district: '경기도 화성시', employees: 220 },
-        { name: '핀테크이노베이션', industry: '금융기술', district: '서울특별시 중구', employees: 160 }
-    ];
-
-    return simulatedCompanies.map(company => ({
-        ...company,
-        employee_count: company.employees,
-        address: company.district + ' (뉴스 기반 정보)',
-        business_type: '주목받는 기업',
-        risk_score: Math.floor(Math.random() * 70) + 10,
-        prediction: '언론 동향 기반 분석',
-        news_source: 'https://news.example.com/' + Math.floor(Math.random() * 10000),
-        last_update: new Date().toISOString(),
-        source: 'news_sim'
-    }));
-}
 
 // 뉴스 검색 쿼리 생성
 function buildNewsSearchQuery(filters) {
