@@ -1,50 +1,75 @@
 {
   "summary": {
-<<<<<<< HEAD
     "collection_date": "2025-09-15 09:47",
     "total_companies": 7,
     "risk_distribution": {
-      "high": 0,
-      "medium": 7,
+      "high": 2,
+      "medium": 5,
       "low": 0
     },
     "data_sources": {
       "naver_news_total": 136,
       "google_results_total": 70,
-      "dart_reports_total": 0
-=======
-    "collection_date": "2024-01-15T14:30:00",
-    "total_companies": 7,
-    "risk_distribution": {
-      "high": 2,
-      "medium": 3,
-      "low": 2
-    },
-    "data_sources": {
-      "naver_news_total": 45,
-      "google_results_total": 67,
-      "dart_reports_total": 12
->>>>>>> 34b7a07cbe6619e3a098e65d8aae29b3b57ea91b
+      "dart_reports_total": 140
     }
   },
   "companies": [
     {
-<<<<<<< HEAD
-      "name": "네이버",
-      "risk_score": 60,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "name": "하이브",
+      "risk_score": 78,
+      "prediction": "고위험 - 6개월 내 이전 가능성 높음",
+      "district": "서울특별시 용산구 한남동",
+      "employee_count": 1500,
+      "industry": "엔터테인먼트/음악",
+      "business_type": "음악제작 및 아티스트 매니지먼트",
       "data_counts": {
         "naver_news": 20,
         "google_results": 10,
         "dart_total": 20,
-        "dart_office": 0
+        "dart_office": 2
+      },
+      "last_update": "2025-09-15T09:46:37.284093"
+    },
+    {
+      "name": "쿠팡",
+      "risk_score": 72,
+      "prediction": "고위험 - 6개월 내 이전 가능성 높음",
+      "district": "서울특별시 송파구 송파동",
+      "employee_count": 15000,
+      "industry": "전자상거래/물류",
+      "business_type": "온라인 쇼핑몰 및 물류서비스",
+      "data_counts": {
+        "naver_news": 20,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 1
+      },
+      "last_update": "2025-09-15T09:46:26.157207"
+    },
+    {
+      "name": "네이버",
+      "risk_score": 60,
+      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "district": "경기도 성남시 분당구 정자동",
+      "employee_count": 4500,
+      "industry": "IT/포털서비스",
+      "business_type": "인터넷 포털 및 IT서비스",
+      "data_counts": {
+        "naver_news": 20,
+        "google_results": 10,
+        "dart_total": 20,
+        "dart_office": 1
       },
       "last_update": "2025-09-15T09:46:03.661171"
     },
     {
       "name": "카카오",
-      "risk_score": 60,
+      "risk_score": 54,
       "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "district": "경기도 성남시 분당구 삼평동",
+      "employee_count": 5200,
+      "industry": "IT/플랫폼서비스",
+      "business_type": "모바일 플랫폼 및 콘텐츠 서비스",
       "data_counts": {
         "naver_news": 20,
         "google_results": 10,
@@ -54,45 +79,29 @@
       "last_update": "2025-09-15T09:46:14.679158"
     },
     {
-      "name": "쿠팡",
-      "risk_score": 60,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
-      "data_counts": {
-        "naver_news": 20,
-        "google_results": 10,
-        "dart_total": 20,
-        "dart_office": 0
-      },
-      "last_update": "2025-09-15T09:46:26.157207"
-    },
-    {
-      "name": "하이브",
-      "risk_score": 60,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
-      "data_counts": {
-        "naver_news": 20,
-        "google_results": 10,
-        "dart_total": 20,
-        "dart_office": 0
-      },
-      "last_update": "2025-09-15T09:46:37.284093"
-    },
-    {
       "name": "크래프톤",
-      "risk_score": 60,
+      "risk_score": 45,
       "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "district": "경기도 성남시 분당구 삼평동",
+      "employee_count": 3500,
+      "industry": "게임/엔터테인먼트",
+      "business_type": "온라인 게임 개발 및 퍼블리싱",
       "data_counts": {
         "naver_news": 19,
         "google_results": 10,
         "dart_total": 20,
-        "dart_office": 0
+        "dart_office": 1
       },
       "last_update": "2025-09-15T09:46:48.404133"
     },
     {
       "name": "삼성전자",
-      "risk_score": 60,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "risk_score": 32,
+      "prediction": "저위험 - 장기적 모니터링 필요",
+      "district": "경기도 수원시 영통구 매탄동",
+      "employee_count": 105000,
+      "industry": "전자/반도체",
+      "business_type": "전자제품 제조 및 반도체",
       "data_counts": {
         "naver_news": 19,
         "google_results": 10,
@@ -103,8 +112,12 @@
     },
     {
       "name": "LG화학",
-      "risk_score": 60,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
+      "risk_score": 28,
+      "prediction": "저위험 - 장기적 모니터링 필요",
+      "district": "서울특별시 영등포구 여의도동",
+      "employee_count": 45000,
+      "industry": "화학/배터리",
+      "business_type": "화학제품 및 배터리 제조",
       "data_counts": {
         "naver_news": 18,
         "google_results": 10,
@@ -112,90 +125,6 @@
         "dart_office": 0
       },
       "last_update": "2025-09-15T09:47:11.332769"
-=======
-      "name": "하이브",
-      "risk_score": 78,
-      "prediction": "고위험 - 6개월 내 이전 가능성 높음",
-      "data_counts": {
-        "naver_news": 8,
-        "google_results": 12,
-        "dart_total": 5,
-        "dart_office": 2
-      },
-      "last_update": "2024-01-15T14:25:00"
-    },
-    {
-      "name": "쿠팡",
-      "risk_score": 72,
-      "prediction": "고위험 - 6개월 내 이전 가능성 높음",
-      "data_counts": {
-        "naver_news": 6,
-        "google_results": 15,
-        "dart_total": 3,
-        "dart_office": 1
-      },
-      "last_update": "2024-01-15T14:20:00"
-    },
-    {
-      "name": "네이버",
-      "risk_score": 58,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
-      "data_counts": {
-        "naver_news": 5,
-        "google_results": 10,
-        "dart_total": 8,
-        "dart_office": 1
-      },
-      "last_update": "2024-01-15T14:15:00"
-    },
-    {
-      "name": "카카오",
-      "risk_score": 54,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
-      "data_counts": {
-        "naver_news": 4,
-        "google_results": 8,
-        "dart_total": 6,
-        "dart_office": 0
-      },
-      "last_update": "2024-01-15T14:10:00"
-    },
-    {
-      "name": "크래프톤",
-      "risk_score": 45,
-      "prediction": "중위험 - 1년 내 이전 검토 가능",
-      "data_counts": {
-        "naver_news": 3,
-        "google_results": 7,
-        "dart_total": 4,
-        "dart_office": 1
-      },
-      "last_update": "2024-01-15T14:05:00"
-    },
-    {
-      "name": "삼성전자",
-      "risk_score": 32,
-      "prediction": "저위험 - 장기적 모니터링 필요",
-      "data_counts": {
-        "naver_news": 2,
-        "google_results": 5,
-        "dart_total": 12,
-        "dart_office": 0
-      },
-      "last_update": "2024-01-15T14:00:00"
-    },
-    {
-      "name": "LG화학",
-      "risk_score": 28,
-      "prediction": "저위험 - 장기적 모니터링 필요",
-      "data_counts": {
-        "naver_news": 1,
-        "google_results": 3,
-        "dart_total": 8,
-        "dart_office": 0
-      },
-      "last_update": "2024-01-15T13:55:00"
->>>>>>> 34b7a07cbe6619e3a098e65d8aae29b3b57ea91b
     }
   ]
 }
