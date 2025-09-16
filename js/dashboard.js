@@ -458,6 +458,9 @@ async function searchCompanies() {
         updateCompanyListReal(filteredCompanies);
         updateSearchResultCount(filteredCompanies.length);
 
+        // 상태 카드 업데이트
+        updateStatusCardsFromSearchResults(filteredCompanies);
+
     } catch (error) {
         console.error('🚨 실시간 검색 실패:', error);
         showError('실시간 기업 검색에 실패했습니다. 다시 시도해주세요.');
@@ -741,6 +744,7 @@ function showAllCompanies() {
     filteredCompanies = allCompanies;
     updateCompanyListReal(filteredCompanies);
     updateSearchResultCount(filteredCompanies.length);
+    updateStatusCardsFromSearchResults(filteredCompanies);
     console.log('📋 전체 기업 표시:', filteredCompanies.length + '개');
 }
 
@@ -749,6 +753,31 @@ function updateSearchResultCount(count) {
     const headerElement = document.querySelector('.card-header h5');
     if (headerElement && headerElement.textContent.includes('사무실 이전 기업 리스트')) {
         headerElement.textContent = `사무실 이전 기업 리스트 (${count}개)`;
+    }
+}
+
+// 검색 결과에 따른 상태 카드 업데이트
+function updateStatusCardsFromSearchResults(companies) {
+    const total = companies.length;
+    const analyzed = companies.length; // 검색된 모든 기업이 분석된 상태
+
+    // 높은 점수 기업 계산 (70점 이상)
+    const highScoreCompanies = companies.filter(c => (c.risk_score || 0) >= 70).length;
+
+    console.log(`📊 상태 카드 업데이트: 총 ${total}개, 분석완료 ${analyzed}개, 고점수 ${highScoreCompanies}개`);
+
+    // 상태 카드 값 업데이트
+    document.getElementById('analyzedCompanies').textContent = analyzed;
+    document.getElementById('totalCompanies').textContent = total;
+    document.getElementById('highRiskCompanies').textContent = highScoreCompanies;
+
+    // 수집 상태 업데이트
+    if (total > 0) {
+        document.getElementById('collectionStatus').textContent = '검색 완료';
+        document.getElementById('statusSpinner').style.display = 'none';
+    } else {
+        document.getElementById('collectionStatus').textContent = '결과 없음';
+        document.getElementById('statusSpinner').style.display = 'none';
     }
 }
 
