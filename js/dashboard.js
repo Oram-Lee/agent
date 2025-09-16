@@ -19,25 +19,16 @@ const API_ENDPOINTS = {
     business_registry: 'https://api.odcloud.kr/api/nts-businessman/v1/status'
 };
 
-// Firebase 설정 (실제 설정값으로 교체 필요)
-const firebaseConfig = {
-    // Firebase 프로젝트 설정이 여기에 들어갑니다
-    apiKey: "your-api-key",
-    authDomain: "your-project.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "your-app-id"
-};
-
-// Firebase 초기화 (실제 사용시 주석 해제)
-// firebase.initializeApp(firebaseConfig);
-// const db = firebase.firestore();
-
 
 // 전역 변수
 let allCompanies = []; // 전체 기업 데이터
 let filteredCompanies = []; // 필터링된 기업 데이터
+
+// 사용자 오류 알림 함수
+function showUserError(message) {
+    console.error('⚠️ 사용자 오류:', message);
+    alert(`⚠️ ${message}`);
+}
 
 // 페이지 로드시 초기화
 document.addEventListener('DOMContentLoaded', function() {
@@ -388,34 +379,58 @@ function showError(message) {
 
 // 지역 선택기 초기화
 function initializeLocationSelectors() {
-    const districtData = {
-        '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-        '경기도': ['고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시', '남양주시', '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시', '안양시', '양주시', '오산시', '용인시', '의왕시', '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'],
-        '인천광역시': ['강화군', '계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '옹진군', '중구'],
-        '부산광역시': ['강서구', '금정구', '기장군', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'],
-        '대구광역시': ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
-        '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
-        '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
-        '울산광역시': ['남구', '동구', '북구', '울주군', '중구'],
-        '세종특별자치시': ['세종특별자치시']
-    };
+    try {
+        console.log('🗺️ 지역 선택자 초기화 시작');
 
-    const citySelect = document.getElementById('citySelect');
-    const districtSelect = document.getElementById('districtSelect');
+        const districtData = {
+            '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+            '경기도': ['고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시', '남양주시', '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시', '안양시', '양주시', '오산시', '용인시', '의왕시', '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'],
+            '인천광역시': ['강화군', '계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '옹진군', '중구'],
+            '부산광역시': ['강서구', '금정구', '기장군', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'],
+            '대구광역시': ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+            '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
+            '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
+            '울산광역시': ['남구', '동구', '북구', '울주군', '중구'],
+            '세종특별자치시': ['세종특별자치시']
+        };
 
-    citySelect.addEventListener('change', function() {
-        const selectedCity = this.value;
-        districtSelect.innerHTML = '<option value="">구/군 선택</option>';
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
 
-        if (selectedCity && districtData[selectedCity]) {
-            districtData[selectedCity].forEach(district => {
-                const option = document.createElement('option');
-                option.value = district;
-                option.textContent = district;
-                districtSelect.appendChild(option);
-            });
+        if (!citySelect) {
+            console.error('❌ citySelect 요소를 찾을 수 없습니다');
+            return;
         }
-    });
+
+        if (!districtSelect) {
+            console.error('❌ districtSelect 요소를 찾을 수 없습니다');
+            return;
+        }
+
+        console.log('✅ 지역 선택 요소들 발견됨');
+
+        citySelect.addEventListener('change', function() {
+            const selectedCity = this.value;
+            console.log('🏙️ 도시 선택됨:', selectedCity);
+
+            districtSelect.innerHTML = '<option value="">구/군 선택</option>';
+
+            if (selectedCity && districtData[selectedCity]) {
+                districtData[selectedCity].forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                });
+                console.log(`✅ ${selectedCity}의 ${districtData[selectedCity].length}개 구/군 추가됨`);
+            }
+        });
+
+        console.log('✅ 지역 선택자 초기화 완료');
+
+    } catch (error) {
+        console.error('❌ 지역 선택자 초기화 오류:', error);
+    }
 }
 
 // 초기 빈 상태 설정
@@ -857,39 +872,42 @@ async function fetchFromDartAPI(filters) {
     }
 }
 
-// DART 기업별 검색
+// DART 기업별 검색 (HTTP 엔드포인트 사용)
 async function searchDartByCompany(companyName, filters) {
     try {
-        const params = new URLSearchParams({
-            crtfc_key: API_KEYS.dart_api_key,
-            corp_name: companyName,
-            bgn_de: '20231201', // 최근 1년
-            end_de: '20241201',
-            page_no: 1,
-            page_count: 10
+        console.log('📊 DART API 검색 via HTTP endpoint:', companyName);
+
+        const endpointUrl = `http://127.0.0.1:5002/office-relocation-predic-df116/us-central1/searchDartAPIHttp`;
+
+        const response = await fetch(endpointUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                corp_name: companyName,
+                bgn_de: '20231201',
+                end_de: '20241201',
+                page_no: 1,
+                page_count: 10
+            })
         });
 
-        const url = `${API_ENDPOINTS.dart_list}?${params}`;
-        console.log('🔍 DART API 호출:', url.substring(0, 100) + '...');
-
-        const response = await fetch(url);
-
         if (!response.ok) {
-            throw new Error(`DART API 응답 오류: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        console.log('📊 DART API 응답:', data);
+        const result = await response.json();
 
-        if (data.status === '000' && data.list) {
-            return parseDartCompanyData(data.list, companyName, filters);
+        if (result.success && result.data && result.data.status === '000' && result.data.list) {
+            return parseDartCompanyData(result.data.list, companyName, filters);
         } else {
-            console.warn(`DART API 오류: ${data.status} - ${data.message || 'Unknown error'}`);
+            console.warn(`DART API 오류: ${result.data?.status} - ${result.data?.message || result.message || 'Unknown error'}`);
             return [];
         }
 
     } catch (error) {
-        console.error(`DART 기업 검색 오류 (${companyName}):`, error);
+        console.error(`DART API 호출 실패 (${companyName}):`, error);
         return [];
     }
 }
@@ -973,63 +991,85 @@ async function fetchCompaniesFromNewsAPI(filters) {
     }
 }
 
-// 네이버 뉴스 검색 (실제 API 호출)
+// 네이버 뉴스 검색 (HTTP 엔드포인트 사용)
 async function searchNaverNews(query) {
     try {
-        console.log('📰 네이버 뉴스 검색:', query);
+        console.log('📰 네이버 뉴스 검색 via HTTP endpoint:', query);
 
-        // GitHub Pages CORS 우회: JSONProxy 또는 CORS Anywhere 사용
-        const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const targetUrl = `${API_ENDPOINTS.naver_news}?query=${encodeURIComponent(query)}&display=50&start=1&sort=date`;
+        // HTTP 엔드포인트 URL 구성
+        const endpointUrl = `http://127.0.0.1:5002/office-relocation-predic-df116/us-central1/searchNaverNewsHttp`;
 
-        const response = await fetch(`${proxyUrl}${encodeURIComponent(targetUrl)}`, {
-            method: 'GET',
+        const response = await fetch(endpointUrl, {
+            method: 'POST',
             headers: {
-                'X-Naver-Client-Id': API_KEYS.naver_client_id,
-                'X-Naver-Client-Secret': API_KEYS.naver_client_secret
-            }
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query,
+                display: 50,
+                start: 1,
+                sort: 'date'
+            })
         });
 
         if (!response.ok) {
-            console.warn('네이버 뉴스 API 호출 실패, 백업 방법 시도...');
-            return generateFallbackNewsData(query);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        return parseNaverNewsResults(data);
+        const result = await response.json();
 
-    } catch (error) {
-        console.error('네이버 뉴스 검색 오류:', error);
-        return generateFallbackNewsData(query);
-    }
-}
-
-// 네이버 블로그 검색
-async function searchNaverBlog(query) {
-    try {
-        console.log('📝 네이버 블로그 검색:', query);
-
-        const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const targetUrl = `${API_ENDPOINTS.naver_blog}?query=${encodeURIComponent(query)}&display=30&start=1&sort=date`;
-
-        const response = await fetch(`${proxyUrl}${encodeURIComponent(targetUrl)}`, {
-            method: 'GET',
-            headers: {
-                'X-Naver-Client-Id': API_KEYS.naver_blog_client_id,
-                'X-Naver-Client-Secret': API_KEYS.naver_blog_client_secret
-            }
-        });
-
-        if (!response.ok) {
-            console.warn('네이버 블로그 API 호출 실패');
+        if (result.success && result.data) {
+            console.log('✅ HTTP를 통한 네이버 뉴스 검색 성공:', result.data.items?.length);
+            return parseNaverNewsResults(result.data);
+        } else {
+            console.warn('네이버 뉴스 검색 결과 없음 또는 API 오류:', result.error || result.message);
             return [];
         }
 
-        const data = await response.json();
-        return parseNaverBlogResults(data);
+    } catch (error) {
+        console.error('네이버 뉴스 API 호출 실패:', error);
+        showUserError('네이버 뉴스 API 연결에 실패했습니다. Firebase Functions 에뮬레이터가 실행 중인지 확인해주세요.');
+        return [];
+    }
+}
+
+// 네이버 블로그 검색 (HTTP 엔드포인트 사용)
+async function searchNaverBlog(query) {
+    try {
+        console.log('📝 네이버 블로그 검색 via HTTP endpoint:', query);
+
+        const endpointUrl = `http://127.0.0.1:5002/office-relocation-predic-df116/us-central1/searchNaverBlogHttp`;
+
+        const response = await fetch(endpointUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query,
+                display: 30,
+                start: 1,
+                sort: 'date'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            console.log('✅ HTTP를 통한 네이버 블로그 검색 성공:', result.data.items?.length);
+            return parseNaverBlogResults(result.data);
+        } else {
+            console.warn('네이버 블로그 검색 결과 없음 또는 API 오류:', result.error || result.message);
+            return [];
+        }
 
     } catch (error) {
-        console.error('네이버 블로그 검색 오류:', error);
+        console.error('네이버 블로그 API 호출 실패:', error);
+        showUserError('네이버 블로그 API 연결에 실패했습니다. Firebase Functions 에뮬레이터가 실행 중인지 확인해주세요.');
         return [];
     }
 }
@@ -1935,35 +1975,7 @@ function calculateRiskFromNews(title, description) {
     return Math.min(Math.max(score, 10), 90);
 }
 
-// 백업 뉴스 데이터 생성 (API 실패시)
-function generateFallbackNewsData(query) {
-    console.log('🔄 백업 뉴스 데이터 생성:', query);
-
-    const fallbackData = [
-        {
-            name: '테크이노베이션',
-            industry: 'IT/소프트웨어',
-            district: '서울특별시 강남구',
-            risk_score: 65,
-            source: 'fallback'
-        },
-        {
-            name: '스마트솔루션',
-            industry: 'IT/플랫폼',
-            district: '경기도 성남시',
-            risk_score: 55,
-            source: 'fallback'
-        }
-    ];
-
-    return fallbackData.map(item => ({
-        ...item,
-        employee_count: Math.floor(Math.random() * 1000) + 100,
-        prediction: 'Fallback analysis',
-        last_update: new Date().toISOString(),
-        address: item.district + ' (상세주소 수집 중)'
-    }));
-}
+// 더미 데이터 생성 기능 제거됨 - 실제 API 데이터만 사용
 
 // Google 검색 쿼리 생성
 function buildGoogleSearchQuery(filters) {
