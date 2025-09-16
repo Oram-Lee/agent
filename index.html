@@ -192,7 +192,81 @@
         </div>
     </div>
 
+    <!-- 기업 상세정보 모달 -->
+    <div class="modal fade" id="companyDetailModal" tabindex="-1" aria-labelledby="companyDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="companyDetailModalLabel">기업 상세 분석</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 기업 기본 정보 -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <h4 id="modalCompanyName" class="text-primary">기업명</h4>
+                            <p class="text-muted mb-2">
+                                <span id="modalIndustry" class="badge bg-info me-2">업종</span>
+                                <span id="modalEmployeeCount">임직원수</span>명
+                            </p>
+                            <p class="text-muted small" id="modalAddress">주소</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <h3 class="text-warning" id="modalScore">85</h3>
+                            <p class="text-muted">분석 점수</p>
+                            <button class="btn btn-outline-primary btn-sm" onclick="openKakaoMap()">
+                                🗺️ 지도보기
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 분석 점수 설명 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">📊 분석 점수 산출 근거</h6>
+                        </div>
+                        <div class="card-body">
+                            <p id="modalAnalysisExplanation" class="mb-0">
+                                분석 설명이 여기에 표시됩니다...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 근거 자료 테이블 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">📋 분석 근거 자료</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>분류</th>
+                                            <th>제목</th>
+                                            <th>출처</th>
+                                            <th>날짜</th>
+                                            <th>링크</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modalEvidenceTable">
+                                        <!-- 동적 생성 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="button" class="btn btn-primary" onclick="downloadReport()">분석 보고서 다운로드</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1ac6eee9b1e4c2e0cc6f1d1ca1a6a559&libraries=services"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>

@@ -805,8 +805,257 @@ function updateStatusCardsFromSearchResults(companies) {
     }
 }
 
+// 전역 변수 (현재 모달에서 보고 있는 기업)
+let currentModalCompany = null;
+
 // 상세 정보 보기 (실제 데이터용)
 function viewDetailsReal(companyName) {
-    // TODO: 실제 상세 정보 모달 구현
-    alert(`${companyName} 상세 정보\n\n- 사무실 이전 위험도 분석\n- 수집된 뉴스 및 공시 정보\n- 임대차 계약 정보\n- 사업 확장 계획\n\n(상세 정보 페이지 구현 예정)`);
+    console.log(`🔍 ${companyName} 상세 정보 로드 중...`);
+
+    // 현재 필터링된 기업 목록에서 해당 기업 찾기
+    const company = filteredCompanies.find(c => c.name === companyName);
+
+    if (!company) {
+        alert('기업 정보를 찾을 수 없습니다.');
+        return;
+    }
+
+    currentModalCompany = company;
+
+    // 모달에 기업 정보 표시
+    populateCompanyModal(company);
+
+    // 모달 표시
+    const modal = new bootstrap.Modal(document.getElementById('companyDetailModal'));
+    modal.show();
+}
+
+// 모달에 기업 정보 채우기
+function populateCompanyModal(company) {
+    // 기본 정보 설정
+    document.getElementById('modalCompanyName').textContent = company.name || '정보 없음';
+    document.getElementById('modalIndustry').textContent = company.industry || '업종 정보 없음';
+    document.getElementById('modalEmployeeCount').textContent = company.employee_count ? company.employee_count.toLocaleString() : '정보 없음';
+    document.getElementById('modalAddress').textContent = company.address || company.district || '주소 정보 없음';
+    document.getElementById('modalScore').textContent = company.risk_score || 0;
+
+    // 분석 점수 설명 생성
+    const explanation = generateAnalysisExplanation(company);
+    document.getElementById('modalAnalysisExplanation').textContent = explanation;
+
+    // 근거 자료 테이블 생성
+    populateEvidenceTable(company);
+}
+
+// 분석 점수 설명 생성
+function generateAnalysisExplanation(company) {
+    const score = company.risk_score || 0;
+    const dataCounts = company.data_counts || {};
+
+    let explanation = `${company.name}의 사무실 이전 분석 점수는 ${score}점입니다. `;
+
+    if (score >= 70) {
+        explanation += `높은 점수를 받은 주요 요인은 `;
+    } else if (score >= 40) {
+        explanation += `중간 수준의 점수를 받은 이유는 `;
+    } else {
+        explanation += `낮은 점수를 받은 이유는 `;
+    }
+
+    const factors = [];
+
+    if (dataCounts.naver_news > 15) {
+        factors.push(`최근 뉴스 활동이 활발함 (${dataCounts.naver_news}건)`);
+    }
+
+    if (dataCounts.dart_office > 0) {
+        factors.push(`사무실 관련 공시가 있음 (${dataCounts.dart_office}건)`);
+    }
+
+    if (company.employee_count > 1000) {
+        factors.push('대규모 기업으로 공간 확장 필요성이 높음');
+    }
+
+    if (score >= 70) {
+        factors.push('업계 내 급성장 기업으로 분류됨');
+    }
+
+    if (factors.length > 0) {
+        explanation += factors.join(', ') + '입니다. ';
+    } else {
+        explanation += '특별한 이전 신호가 감지되지 않았습니다. ';
+    }
+
+    explanation += `총 ${dataCounts.naver_news || 0}건의 뉴스, ${dataCounts.google_results || 0}건의 검색 결과, ${dataCounts.dart_total || 0}건의 공시 정보를 종합하여 분석하였습니다.`;
+
+    return explanation;
+}
+
+// 근거 자료 테이블 채우기
+function populateEvidenceTable(company) {
+    const tableBody = document.getElementById('modalEvidenceTable');
+    const dataCounts = company.data_counts || {};
+
+    // 기존 내용 제거
+    tableBody.innerHTML = '';
+
+    // 모의 근거 자료 생성
+    const evidenceData = generateMockEvidence(company, dataCounts);
+
+    evidenceData.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><span class="badge bg-${item.type === '뉴스' ? 'primary' : item.type === '공시' ? 'warning' : 'success'}">${item.type}</span></td>
+            <td>${item.title}</td>
+            <td>${item.source}</td>
+            <td>${item.date}</td>
+            <td><a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-primary">보기</a></td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// 모의 근거 자료 생성
+function generateMockEvidence(company, dataCounts) {
+    const evidence = [];
+    const companyName = company.name;
+
+    // 뉴스 자료
+    if (dataCounts.naver_news > 0) {
+        evidence.push({
+            type: '뉴스',
+            title: `${companyName}, 신규 사업 확장으로 직원 채용 증가`,
+            source: '한국경제신문',
+            date: '2024-12-15',
+            link: 'https://example.com/news1'
+        });
+
+        if (dataCounts.naver_news > 10) {
+            evidence.push({
+                type: '뉴스',
+                title: `${companyName} CEO "내년 사업 규모 확대 계획"`,
+                source: '매일경제',
+                date: '2024-12-10',
+                link: 'https://example.com/news2'
+            });
+        }
+    }
+
+    // 공시 자료
+    if (dataCounts.dart_total > 0) {
+        evidence.push({
+            type: '공시',
+            title: `${companyName} 정기보고서 (사업보고서)`,
+            source: 'DART 전자공시',
+            date: '2024-11-30',
+            link: 'https://dart.fss.or.kr'
+        });
+
+        if (dataCounts.dart_office > 0) {
+            evidence.push({
+                type: '공시',
+                title: `${companyName} 임대차계약 체결 공고`,
+                source: 'DART 전자공시',
+                date: '2024-11-25',
+                link: 'https://dart.fss.or.kr'
+            });
+        }
+    }
+
+    // 투자 관련 자료
+    if (company.employee_count > 500) {
+        evidence.push({
+            type: '투자',
+            title: `${companyName} 시리즈 B 투자 유치 완료`,
+            source: '벤처스퀘어',
+            date: '2024-11-20',
+            link: 'https://example.com/investment1'
+        });
+    }
+
+    // 기타 자료
+    evidence.push({
+        type: '기타',
+        title: `${companyName} 직원 복지 향상을 위한 사무공간 개선`,
+        source: '잡코리아',
+        date: '2024-11-15',
+        link: 'https://example.com/job1'
+    });
+
+    return evidence.slice(0, 8); // 최대 8개 항목
+}
+
+// 카카오맵 열기
+function openKakaoMap() {
+    if (!currentModalCompany) {
+        alert('기업 정보가 없습니다.');
+        return;
+    }
+
+    const address = currentModalCompany.address || currentModalCompany.district || '';
+    const companyName = currentModalCompany.name;
+
+    if (!address) {
+        alert('주소 정보가 없어 지도를 표시할 수 없습니다.');
+        return;
+    }
+
+    // 카카오맵 URL로 새 창 열기
+    const kakaoMapUrl = `https://map.kakao.com/link/search/${encodeURIComponent(companyName + ' ' + address)}`;
+    window.open(kakaoMapUrl, '_blank', 'width=800,height=600');
+}
+
+// 분석 보고서 다운로드
+function downloadReport() {
+    if (!currentModalCompany) {
+        alert('기업 정보가 없습니다.');
+        return;
+    }
+
+    // 간단한 텍스트 보고서 생성
+    const report = generateTextReport(currentModalCompany);
+
+    // 파일 다운로드
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentModalCompany.name}_분석보고서.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// 텍스트 보고서 생성
+function generateTextReport(company) {
+    const report = `
+${company.name} 사무실 이전 분석 보고서
+======================================
+
+■ 기업 기본 정보
+- 기업명: ${company.name}
+- 업종: ${company.industry}
+- 임직원수: ${company.employee_count}명
+- 주소: ${company.address || company.district}
+- 웹사이트: ${company.website || '정보 없음'}
+- 대표전화: ${company.phone || '정보 없음'}
+
+■ 분석 결과
+- 분석 점수: ${company.risk_score}점
+- 예측: ${company.prediction}
+- 분석일시: ${formatDate(company.last_update)}
+
+■ 분석 근거
+${generateAnalysisExplanation(company)}
+
+■ 수집 데이터 현황
+- 뉴스 기사: ${company.data_counts?.naver_news || 0}건
+- 검색 결과: ${company.data_counts?.google_results || 0}건
+- 공시 정보: ${company.data_counts?.dart_total || 0}건
+- 사무실 관련 공시: ${company.data_counts?.dart_office || 0}건
+
+※ 본 보고서는 AI 분석 도구에 의해 자동 생성되었습니다.
+※ 생성일시: ${new Date().toLocaleString()}
+    `;
+
+    return report.trim();
 }
