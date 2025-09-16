@@ -20,9 +20,16 @@ const firebaseConfig = {
 // const db = firebase.firestore();
 
 
+// 전역 변수
+let allCompanies = []; // 전체 기업 데이터
+let filteredCompanies = []; // 필터링된 기업 데이터
+
 // 페이지 로드시 초기화
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 페이지 로드 - 실제 데이터 로드 시작');
+
+    // 지역 선택 이벤트 리스너 추가
+    initializeLocationSelectors();
 
     // 실제 데이터 로드
     loadDashboardData();
@@ -55,14 +62,17 @@ async function loadDashboardData() {
 function updateDashboardWithRealData(data, companies) {
     // 메타데이터에서 통계 정보 추출
     const metadata = data.summary || {};
-    
+
+    // 전역 변수에 데이터 저장
+    allCompanies = companies;
+    filteredCompanies = companies;
+
     // 실제 데이터로 상태 카드 업데이트
     updateStatusCardsReal(metadata, companies);
-    
+
     // 실제 데이터로 회사 리스트 업데이트
     updateCompanyListReal(companies);
-    
-    
+
     updateLastUpdateTime(metadata.collection_date);
 }
 
@@ -312,6 +322,126 @@ function showError(message) {
             </div>
         </div>
     `;
+}
+
+// 지역 선택기 초기화
+function initializeLocationSelectors() {
+    const districtData = {
+        '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+        '경기도': ['고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시', '남양주시', '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시', '안양시', '양주시', '오산시', '용인시', '의왕시', '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'],
+        '인천광역시': ['강화군', '계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '옹진군', '중구'],
+        '부산광역시': ['강서구', '금정구', '기장군', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'],
+        '대구광역시': ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+        '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
+        '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
+        '울산광역시': ['남구', '동구', '북구', '울주군', '중구'],
+        '세종특별자치시': ['세종특별자치시']
+    };
+
+    const citySelect = document.getElementById('citySelect');
+    const districtSelect = document.getElementById('districtSelect');
+
+    citySelect.addEventListener('change', function() {
+        const selectedCity = this.value;
+        districtSelect.innerHTML = '<option value="">구/군 선택</option>';
+
+        if (selectedCity && districtData[selectedCity]) {
+            districtData[selectedCity].forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.textContent = district;
+                districtSelect.appendChild(option);
+            });
+        }
+    });
+}
+
+// 기업 검색 함수
+function searchCompanies() {
+    console.log('🔍 기업 검색 시작...');
+
+    // 검색 조건 수집
+    const filters = {
+        city: document.getElementById('citySelect').value,
+        district: document.getElementById('districtSelect').value,
+        address: document.getElementById('addressInput').value.trim(),
+        industry: document.getElementById('industrySelect').value,
+        employeeMin: parseInt(document.getElementById('employeeMin').value) || null,
+        employeeMax: parseInt(document.getElementById('employeeMax').value) || null,
+        companyName: document.getElementById('companyNameInput').value.trim()
+    };
+
+    console.log('검색 조건:', filters);
+
+    // 필터링 실행
+    filteredCompanies = allCompanies.filter(company => {
+        // 지역 필터링
+        if (filters.city && !company.district?.includes(filters.city)) {
+            return false;
+        }
+        if (filters.district && !company.district?.includes(filters.district)) {
+            return false;
+        }
+        if (filters.address && !company.district?.toLowerCase().includes(filters.address.toLowerCase())) {
+            return false;
+        }
+
+        // 업종 필터링
+        if (filters.industry && !company.industry?.toLowerCase().includes(filters.industry.toLowerCase())) {
+            return false;
+        }
+
+        // 임직원수 필터링
+        if (filters.employeeMin && company.employee_count < filters.employeeMin) {
+            return false;
+        }
+        if (filters.employeeMax && company.employee_count > filters.employeeMax) {
+            return false;
+        }
+
+        // 기업명 필터링
+        if (filters.companyName && !company.name?.toLowerCase().includes(filters.companyName.toLowerCase())) {
+            return false;
+        }
+
+        return true;
+    });
+
+    console.log(`📊 검색 결과: ${filteredCompanies.length}개 기업`);
+
+    // 검색 결과 표시
+    updateCompanyListReal(filteredCompanies);
+    updateSearchResultCount(filteredCompanies.length);
+}
+
+// 필터 초기화
+function resetFilters() {
+    document.getElementById('citySelect').value = '';
+    document.getElementById('districtSelect').innerHTML = '<option value="">구/군 선택</option>';
+    document.getElementById('addressInput').value = '';
+    document.getElementById('industrySelect').value = '';
+    document.getElementById('employeeMin').value = '';
+    document.getElementById('employeeMax').value = '';
+    document.getElementById('companyNameInput').value = '';
+
+    // 전체 데이터 표시
+    showAllCompanies();
+}
+
+// 전체 기업 보기
+function showAllCompanies() {
+    filteredCompanies = allCompanies;
+    updateCompanyListReal(filteredCompanies);
+    updateSearchResultCount(filteredCompanies.length);
+    console.log('📋 전체 기업 표시:', filteredCompanies.length + '개');
+}
+
+// 검색 결과 개수 업데이트
+function updateSearchResultCount(count) {
+    const headerElement = document.querySelector('.card-header h5');
+    if (headerElement && headerElement.textContent.includes('사무실 이전 기업 리스트')) {
+        headerElement.textContent = `사무실 이전 기업 리스트 (${count}개)`;
+    }
 }
 
 // 상세 정보 보기 (실제 데이터용)

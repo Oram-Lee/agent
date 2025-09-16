@@ -67,8 +67,112 @@
             </div>
         </div>
 
+        <!-- 검색 필터 섹션 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>🔍 기업 검색 조건 설정</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="searchForm" onsubmit="return false;">
+                            <div class="row mb-3">
+                                <!-- 지역 선택 -->
+                                <div class="col-md-6">
+                                    <label for="locationSelect" class="form-label">📍 위치</label>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <select class="form-select" id="citySelect">
+                                                <option value="">시/도 선택</option>
+                                                <option value="서울특별시">서울특별시</option>
+                                                <option value="경기도">경기도</option>
+                                                <option value="인천광역시">인천광역시</option>
+                                                <option value="부산광역시">부산광역시</option>
+                                                <option value="대구광역시">대구광역시</option>
+                                                <option value="대전광역시">대전광역시</option>
+                                                <option value="광주광역시">광주광역시</option>
+                                                <option value="울산광역시">울산광역시</option>
+                                                <option value="세종특별자치시">세종특별자치시</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <select class="form-select" id="districtSelect">
+                                                <option value="">구/군 선택</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <input type="text" class="form-control" id="addressInput" placeholder="또는 도로명 주소 직접 입력">
+                                    </div>
+                                </div>
 
-        <!-- 가망 고객 리스트 -->
+                                <!-- 업종 선택 -->
+                                <div class="col-md-6">
+                                    <label for="industrySelect" class="form-label">🏢 업종</label>
+                                    <select class="form-select" id="industrySelect">
+                                        <option value="">업종 선택</option>
+                                        <option value="IT">IT/소프트웨어</option>
+                                        <option value="제조">제조업</option>
+                                        <option value="유통">유통/소매</option>
+                                        <option value="물류">물류/운송</option>
+                                        <option value="금융">금융/보험</option>
+                                        <option value="바이오">바이오/제약</option>
+                                        <option value="화학">화학/석유</option>
+                                        <option value="건설">건설/부동산</option>
+                                        <option value="엔터테인먼트">엔터테인먼트/미디어</option>
+                                        <option value="교육">교육/연구</option>
+                                        <option value="의료">의료/헬스케어</option>
+                                        <option value="에너지">에너지/환경</option>
+                                        <option value="통신">통신/네트워크</option>
+                                        <option value="게임">게임/앱</option>
+                                        <option value="기타">기타</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <!-- 임직원수 범위 -->
+                                <div class="col-md-6">
+                                    <label class="form-label">👥 임직원수</label>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <input type="number" class="form-control" id="employeeMin" placeholder="최소 인원" min="1">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="number" class="form-control" id="employeeMax" placeholder="최대 인원" min="1">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 기업명 -->
+                                <div class="col-md-6">
+                                    <label for="companyNameInput" class="form-label">🏭 기업명</label>
+                                    <input type="text" class="form-control" id="companyNameInput" placeholder="기업명 입력 (부분 검색 가능)">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="searchCompanies()">
+                                            🔍 검색
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="resetFilters()">
+                                            🔄 초기화
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info" onclick="showAllCompanies()">
+                                            📋 전체 보기
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 사무실 이전 기업 리스트 -->
         <div class="row">
             <div class="col-12">
                 <div class="card">
