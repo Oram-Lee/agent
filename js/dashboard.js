@@ -424,6 +424,7 @@ function initializeEmptyState() {
 // 실시간 기업 검색 함수
 async function searchCompanies() {
     console.log('🔍 실시간 기업 검색 시작...');
+    console.log('🔧 검색 함수 호출됨 - 정상 작동 중');
 
     // 검색 조건 수집
     const filters = {
@@ -651,7 +652,7 @@ function generateMockSearchResults(searchTerm, type) {
 function removeDuplicates(companies) {
     const seen = new Set();
     return companies.filter(company => {
-        const key = company.name + company.district;
+        const key = company.name + (company.address || company.district || '');
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -660,12 +661,35 @@ function removeDuplicates(companies) {
 
 // 필터 적용
 function applyFilters(companies, filters) {
+    console.log('🔍 필터 적용 시작:', companies.length, '개 기업');
+
     return companies.filter(company => {
-        if (filters.city && !company.district?.includes(filters.city)) return false;
-        if (filters.district && !company.district?.includes(filters.district)) return false;
-        if (filters.industry && !company.industry?.toLowerCase().includes(filters.industry.toLowerCase())) return false;
-        if (filters.employeeMin && company.employee_count < filters.employeeMin) return false;
-        if (filters.employeeMax && company.employee_count > filters.employeeMax) return false;
+        const address = company.address || company.district || '';
+
+        console.log(`  - ${company.name}: 주소="${address}", 업종="${company.industry}"`);
+
+        if (filters.city && !address.includes(filters.city)) {
+            console.log(`    ❌ 시/도 필터 실패: ${filters.city}`);
+            return false;
+        }
+        if (filters.district && !address.includes(filters.district)) {
+            console.log(`    ❌ 구/군 필터 실패: ${filters.district}`);
+            return false;
+        }
+        if (filters.industry && !company.industry?.toLowerCase().includes(filters.industry.toLowerCase())) {
+            console.log(`    ❌ 업종 필터 실패: ${filters.industry}`);
+            return false;
+        }
+        if (filters.employeeMin && company.employee_count < filters.employeeMin) {
+            console.log(`    ❌ 최소인원 필터 실패: ${filters.employeeMin}`);
+            return false;
+        }
+        if (filters.employeeMax && company.employee_count > filters.employeeMax) {
+            console.log(`    ❌ 최대인원 필터 실패: ${filters.employeeMax}`);
+            return false;
+        }
+
+        console.log(`    ✅ ${company.name} 필터 통과!`);
         return true;
     });
 }
