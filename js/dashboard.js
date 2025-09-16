@@ -36,16 +36,16 @@ let filteredCompanies = []; // 필터링된 기업 데이터
 
 // 페이지 로드시 초기화
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 페이지 로드 - 실제 데이터 로드 시작');
+    console.log('🔄 페이지 로드 - 검색 시스템 초기화');
 
     // 지역 선택 이벤트 리스너 추가
     initializeLocationSelectors();
 
-    // 실제 데이터 로드
-    loadDashboardData();
+    // 초기 상태 설정 (검색 전 상태)
+    initializeEmptyState();
 
-    // 5분마다 자동 새로고침
-    setInterval(loadDashboardData, 300000);
+    // 정적 데이터 로드는 제거 - 검색으로만 데이터 로드
+    console.log('✅ 실시간 검색 시스템 준비 완료');
 });
 
 
@@ -364,6 +364,41 @@ function initializeLocationSelectors() {
             });
         }
     });
+}
+
+// 초기 빈 상태 설정
+function initializeEmptyState() {
+    // 상태 카드 초기화
+    document.getElementById('analyzedCompanies').textContent = '0';
+    document.getElementById('totalCompanies').textContent = '0';
+    document.getElementById('highRiskCompanies').textContent = '0';
+    document.getElementById('collectionStatus').textContent = '대기 중';
+    document.getElementById('statusSpinner').style.display = 'none';
+
+    // 빈 리스트 상태 표시
+    const listContainer = document.getElementById('companyList');
+    listContainer.innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-search" style="font-size: 4rem; color: #6c757d;"></i>
+            </div>
+            <h5 class="text-muted">기업 검색을 시작하세요</h5>
+            <p class="text-muted">
+                위의 검색 조건을 설정하고 "🔍 검색" 버튼을 클릭하면<br>
+                실시간으로 조건에 맞는 기업들을 찾아드립니다.
+            </p>
+            <div class="mt-4">
+                <button class="btn btn-primary" onclick="document.getElementById('citySelect').focus()">
+                    검색 조건 설정하기
+                </button>
+            </div>
+        </div>
+    `;
+
+    // 검색 결과 카운트 초기화
+    updateSearchResultCount(0);
+
+    updateLastUpdateTime();
 }
 
 // 실시간 기업 검색 함수
