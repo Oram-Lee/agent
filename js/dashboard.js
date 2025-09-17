@@ -1,1011 +1,685 @@
-// 개선된 dashboard.js - 실제 기업 데이터만 사용 (더미데이터 완전 제거)
+// Firebase Functions 통합 dashboard.js - 실제 API 데이터만 사용
 
 // 전역 변수
 let allCompanies = [];
 let filteredCompanies = [];
 let currentModalCompany = null;
+let isSearching = false;
 
-// 실제 한국 주요 기업 데이터베이스 (공개 정보 기반)
-const REAL_COMPANIES_DB = {
-    '삼성전자': {
-        name: '삼성전자',
-        industry: 'IT/전자',
-        address: '경기도 수원시 영통구 삼성로 129',
-        district: '경기도 수원시',
-        employee_count: 105000,
-        website: 'https://www.samsung.com/sec',
-        phone: '031-200-1114',
-        email: 'webmaster@samsung.com',
-        business_type: '상장기업',
-        risk_score: 45,
-        prediction: '대기업 - 안정적 운영 중',
-        address_detail: '삼성전자 디지털시티'
-    },
-    '네이버': {
-        name: '네이버',
-        industry: 'IT/포털서비스',
-        address: '경기도 성남시 분당구 불정로 6',
-        district: '경기도 성남시',
-        employee_count: 4500,
-        website: 'https://www.navercorp.com',
-        phone: '1588-3820',
-        email: 'dl_naverhelp@navercorp.com',
-        business_type: '상장기업',
-        risk_score: 75,
-        prediction: '성장 기업 - 공간 확장 가능성 높음',
-        address_detail: '네이버 그린팩토리'
-    },
-    '카카오': {
-        name: '카카오',
-        industry: 'IT/플랫폼서비스',
-        address: '경기도 성남시 분당구 판교역로 166',
-        district: '경기도 성남시',
-        employee_count: 5200,
-        website: 'https://www.kakaocorp.com',
-        phone: '1577-3754',
-        email: 'service@kakao.com',
-        business_type: '상장기업',
-        risk_score: 80,
-        prediction: '급성장 기업 - 사옥 확장 필요성 높음',
-        address_detail: '카카오 판교아지트'
-    },
-    '쿠팡': {
-        name: '쿠팡',
-        industry: '전자상거래/물류',
-        address: '서울특별시 송파구 송파대로 570',
-        district: '서울특별시 송파구',
-        employee_count: 15000,
-        website: 'https://www.coupang.com',
-        phone: '1577-7011',
-        email: 'help@coupang.com',
-        business_type: '상장기업',
-        risk_score: 85,
-        prediction: '물류센터 확장 중 - 사무공간 확장 예상',
-        address_detail: '쿠팡 본사'
-    },
-    '하이브': {
-        name: '하이브',
-        industry: '엔터테인먼트/음악',
-        address: '서울특별시 용산구 한남대로 42',
-        district: '서울특별시 용산구',
-        employee_count: 1500,
-        website: 'https://hybecorp.com',
-        phone: '02-3140-4000',
-        email: 'webmaster@hybecorp.com',
-        business_type: '상장기업',
-        risk_score: 90,
-        prediction: '글로벌 확장 중 - 신사옥 이전 가능성 매우 높음',
-        address_detail: '하이브 인사이트'
-    },
-    '크래프톤': {
-        name: '크래프톤',
-        industry: '게임/엔터테인먼트',
-        address: '경기도 성남시 분당구 판교역로 152',
-        district: '경기도 성남시',
-        employee_count: 3500,
-        website: 'https://www.krafton.com',
-        phone: '031-5180-5000',
-        email: 'help@krafton.com',
-        business_type: '상장기업',
-        risk_score: 70,
-        prediction: '게임 사업 확장 - 개발센터 확장 검토 중',
-        address_detail: '크래프톤 타워'
-    },
-    'LG화학': {
-        name: 'LG화학',
-        industry: '화학/배터리',
-        address: '서울특별시 영등포구 여의대로 128',
-        district: '서울특별시 영등포구',
-        employee_count: 45000,
-        website: 'https://www.lgchem.com',
-        phone: '02-3773-1114',
-        email: 'webmaster@lgchem.com',
-        business_type: '상장기업',
-        risk_score: 60,
-        prediction: '배터리 사업 확장 - R&D 센터 이전 검토',
-        address_detail: 'LG트윈타워'
-    },
-    '엔씨소프트': {
-        name: '엔씨소프트',
-        industry: '게임/소프트웨어',
-        address: '경기도 성남시 분당구 대왕판교로 644',
-        district: '경기도 성남시',
-        employee_count: 7500,
-        website: 'https://kr.ncsoft.com',
-        phone: '02-2186-3300',
-        email: 'webmaster@ncsoft.com',
-        business_type: '상장기업',
-        risk_score: 65,
-        prediction: '글로벌 게임 사업 확장 - 신규 개발 센터 검토',
-        address_detail: 'NC타워'
-    },
-    '넥슨': {
-        name: '넥슨',
-        industry: '게임/엔터테인먼트',
-        address: '경기도 성남시 분당구 정자일로 95',
-        district: '경기도 성남시',
-        employee_count: 6000,
-        website: 'https://company.nexon.com',
-        phone: '031-8018-7000',
-        email: 'help@nexon.com',
-        business_type: '상장기업',
-        risk_score: 68,
-        prediction: '메타버스 사업 확장 - 개발 공간 증설 예정',
-        address_detail: '넥슨코리아 빌딩'
-    },
-    '셀트리온': {
-        name: '셀트리온',
-        industry: '바이오/제약',
-        address: '인천광역시 연수구 아트센터대로 109',
-        district: '인천광역시 연수구',
-        employee_count: 4500,
-        website: 'https://www.celltrion.com',
-        phone: '032-850-5000',
-        email: 'webmaster@celltrion.com',
-        business_type: '상장기업',
-        risk_score: 72,
-        prediction: '글로벌 바이오 사업 확장 - 연구센터 증축 예정',
-        address_detail: '셀트리온 파크'
-    },
-    '현대자동차': {
-        name: '현대자동차',
-        industry: '자동차/제조업',
-        address: '서울특별시 서초구 헌릉로 12',
-        district: '서울특별시 서초구',
-        employee_count: 68000,
-        website: 'https://www.hyundai.com',
-        phone: '02-746-1114',
-        email: 'webmaster@hyundai.com',
-        business_type: '상장기업',
-        risk_score: 55,
-        prediction: '전기차 전환 - 연구개발 센터 확장 검토',
-        address_detail: '현대자동차 본사'
-    },
-    'SK하이닉스': {
-        name: 'SK하이닉스',
-        industry: '반도체/IT',
-        address: '경기도 이천시 부발읍 아미리 산 136-1',
-        district: '경기도 이천시',
-        employee_count: 32000,
-        website: 'https://www.skhynix.com',
-        phone: '031-630-4114',
-        email: 'webmaster@skhynix.com',
-        business_type: '상장기업',
-        risk_score: 58,
-        prediction: '반도체 공급망 확장 - 본사 이전 가능성',
-        address_detail: 'SK하이닉스 이천캠퍼스'
+// Firebase Functions 기본 URL
+const FIREBASE_FUNCTIONS_BASE_URL = 'https://us-central1-office-relocation-predic-df116.cloudfunctions.net';
+
+// Firebase Functions API 클래스
+class FirebaseAPI {
+    static async searchNaverNews(query, options = {}) {
+        const url = `${FIREBASE_FUNCTIONS_BASE_URL}/searchNaverNewsHttp`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query,
+                display: options.display || 50,
+                start: options.start || 1,
+                sort: options.sort || 'date'
+            })
+        });
+        return await response.json();
     }
-};
 
-// 업종별 기업 매핑
-const INDUSTRY_MAPPING = {
-    'IT': ['네이버', '카카오', '삼성전자', '엔씨소프트', 'SK하이닉스'],
-    '게임': ['크래프톤', '넥슨', '엔씨소프트'],
-    '전자상거래': ['쿠팡'],
-    '엔터테인먼트': ['하이브', '크래프톤', '넥슨'],
-    '제조': ['삼성전자', '현대자동차', 'LG화학'],
-    '화학': ['LG화학'],
-    '바이오': ['셀트리온'],
-    '자동차': ['현대자동차'],
-    '반도체': ['삼성전자', 'SK하이닉스']
-};
-
-// 지역별 기업 매핑
-const LOCATION_MAPPING = {
-    '서울특별시': {
-        '송파구': ['쿠팡'],
-        '용산구': ['하이브'],
-        '영등포구': ['LG화학'],
-        '서초구': ['현대자동차']
-    },
-    '경기도': {
-        '성남시': ['네이버', '카카오', '크래프톤', '엔씨소프트', '넥슨'],
-        '수원시': ['삼성전자'],
-        '이천시': ['SK하이닉스']
-    },
-    '인천광역시': {
-        '연수구': ['셀트리온']
+    static async searchNaverBlog(query, options = {}) {
+        const url = `${FIREBASE_FUNCTIONS_BASE_URL}/searchNaverBlogHttp`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query,
+                display: options.display || 30,
+                start: options.start || 1,
+                sort: options.sort || 'date'
+            })
+        });
+        return await response.json();
     }
-};
 
-// 사용자 오류 알림 함수
-function showUserError(message) {
-    console.error('⚠️ 사용자 오류:', message);
-    
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed';
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 400px;';
-    alertDiv.innerHTML = `
-        <i class="bi bi-exclamation-triangle"></i> ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
+    static async searchDartAPI(corpName, options = {}) {
+        const url = `${FIREBASE_FUNCTIONS_BASE_URL}/searchDartAPIHttp`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                corp_name: corpName,
+                bgn_de: options.beginDate || '20231201',
+                end_de: options.endDate || '20241201',
+                page_no: options.pageNo || 1,
+                page_count: options.pageCount || 10
+            })
+        });
+        return await response.json();
+    }
+
+    static async searchAllAPIs(searchParams) {
+        const url = `${FIREBASE_FUNCTIONS_BASE_URL}/searchAllAPIs`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(searchParams)
+        });
+        return await response.json();
+    }
 }
 
-// 페이지 로드시 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 페이지 로드 - 실제 기업 검색 시스템 초기화');
-    
-    initializeLocationSelectors();
-    initializeEmptyState();
-    
-    console.log('✅ 실제 기업 검색 시스템 준비 완료');
-});
+// 기업 데이터 분석 및 위험도 계산
+class CompanyAnalyzer {
+    static analyzeCompanyData(newsData, blogData, dartData, companyName) {
+        let riskScore = 50; // 기본 점수
+        let signals = [];
+        let prediction = '정보 부족';
 
-// 실시간 기업 검색 함수
+        // 뉴스 데이터 분석
+        if (newsData && newsData.items) {
+            const newsCount = newsData.items.length;
+            const recentNews = newsData.items.filter(item => {
+                const newsDate = new Date(item.pubDate);
+                const oneMonthAgo = new Date();
+                oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+                return newsDate >= oneMonthAgo;
+            });
+
+            // 이전 관련 키워드 분석
+            const relocationKeywords = ['이전', '신사옥', '확장', '투자', '채용', '성장'];
+            const positiveNews = newsData.items.filter(item =>
+                relocationKeywords.some(keyword =>
+                    item.title.includes(keyword) || item.description.includes(keyword)
+                )
+            );
+
+            if (positiveNews.length > 0) {
+                riskScore += 20;
+                signals.push('사옥 이전 관련 뉴스');
+            }
+
+            if (recentNews.length > 5) {
+                riskScore += 10;
+                signals.push('최근 언론 노출 증가');
+            }
+        }
+
+        // 블로그 데이터 분석
+        if (blogData && blogData.items) {
+            const blogCount = blogData.items.length;
+            if (blogCount > 10) {
+                riskScore += 5;
+                signals.push('온라인 관심도 증가');
+            }
+        }
+
+        // DART 공시 데이터 분석
+        if (dartData && dartData.list) {
+            const recentDisclosures = dartData.list.filter(item => {
+                const disclosureDate = new Date(item.rcept_dt);
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                return disclosureDate >= threeMonthsAgo;
+            });
+
+            if (recentDisclosures.length > 0) {
+                riskScore += 15;
+                signals.push('최근 공시 활동');
+            }
+
+            // 특별한 공시 유형 확인
+            const importantDisclosures = dartData.list.filter(item =>
+                item.report_nm.includes('투자') ||
+                item.report_nm.includes('증자') ||
+                item.report_nm.includes('합병') ||
+                item.report_nm.includes('분할')
+            );
+
+            if (importantDisclosures.length > 0) {
+                riskScore += 20;
+                signals.push('중요 기업 활동');
+            }
+        }
+
+        // 위험도에 따른 예측 설정
+        if (riskScore >= 80) {
+            prediction = '3-6개월 내 사옥 이전 가능성 높음';
+        } else if (riskScore >= 60) {
+            prediction = '6-12개월 내 사옥 이전 검토 가능성';
+        } else if (riskScore >= 40) {
+            prediction = '현재 안정적 운영, 단기 이전 가능성 낮음';
+        } else {
+            prediction = '충분한 정보 없음';
+        }
+
+        return {
+            riskScore: Math.min(riskScore, 100),
+            signals,
+            prediction
+        };
+    }
+}
+
+// 검색 기능
 async function searchCompanies() {
-    console.log('🔍 실제 기업 검색 시작...');
-    
-    const filters = {
-        city: document.getElementById('citySelect').value,
-        district: document.getElementById('districtSelect').value,
-        address: document.getElementById('addressInput').value.trim(),
-        industry: document.getElementById('industrySelect').value,
-        employeeMin: parseInt(document.getElementById('employeeMin').value) || null,
-        employeeMax: parseInt(document.getElementById('employeeMax').value) || null,
-        companyName: document.getElementById('companyNameInput').value.trim()
-    };
-    
-    console.log('🔍 검색 조건:', filters);
-    
-    if (!filters.city && !filters.industry && !filters.companyName && !filters.address) {
-        showUserError('최소 하나의 검색 조건을 입력해주세요.');
+    if (isSearching) {
+        console.log('검색이 이미 진행 중입니다.');
         return;
     }
-    
-    showLoadingState();
-    
+
+    isSearching = true;
+
     try {
-        const companies = await fetchRealCompanies(filters);
-        
-        console.log(`📊 검색 결과: ${companies.length}개 기업`);
-        
-        if (companies.length === 0) {
-            showNoResultsMessage(filters);
+        // 검색 UI 업데이트
+        updateSearchStatus('검색 중...', true);
+
+        // 검색 조건 수집
+        const searchQuery = document.getElementById('companySearch').value.trim();
+        const selectedIndustry = document.getElementById('industryFilter').value;
+        const selectedLocation = document.getElementById('locationFilter').value;
+        const riskRange = document.getElementById('riskRange').value;
+
+        if (!searchQuery) {
+            alert('검색할 기업명을 입력해주세요.');
             return;
         }
-        
-        filteredCompanies = companies;
-        allCompanies = companies;
-        
-        updateCompanyListReal(filteredCompanies);
-        updateSearchResultCount(filteredCompanies.length);
-        updateStatusCardsFromSearchResults(filteredCompanies);
-        
-        showSearchSuccessMessage(companies.length);
-        
+
+        console.log('검색 시작:', { searchQuery, selectedIndustry, selectedLocation, riskRange });
+
+        // Firebase Functions를 통한 통합 API 검색
+        const searchParams = {
+            companyName: searchQuery,
+            industry: selectedIndustry || '',
+            location: selectedLocation || '',
+            riskThreshold: parseInt(riskRange) || 50
+        };
+
+        updateSearchStatus('API 데이터 수집 중...', true);
+
+        const apiResults = await FirebaseAPI.searchAllAPIs(searchParams);
+        console.log('API 검색 결과:', apiResults);
+
+        // 결과 데이터 처리
+        allCompanies = [];
+
+        if (apiResults.success) {
+            const { newsData, blogData, dartData } = apiResults.data;
+
+            // 수집된 데이터를 기반으로 기업 정보 생성
+            const companies = await processAPIResults(newsData, blogData, dartData, searchQuery);
+            allCompanies = companies;
+        } else {
+            console.error('API 검색 실패:', apiResults.error);
+            // 실패시 기본 검색 시도
+            allCompanies = await performFallbackSearch(searchQuery);
+        }
+
+        // 필터 적용
+        applyFilters();
+
+        // 결과 표시
+        displayResults();
+        updateStats();
+
+        updateSearchStatus(`검색 완료 - ${allCompanies.length}개 기업 발견`, false);
+
     } catch (error) {
-        console.error('🚨 검색 실패:', error);
-        showError('기업 검색에 실패했습니다. 다시 시도해주세요.');
+        console.error('검색 중 오류:', error);
+        updateSearchStatus('검색 중 오류가 발생했습니다.', false);
+        allCompanies = [];
+        displayResults();
     } finally {
-        hideLoadingState();
+        isSearching = false;
     }
 }
 
-// 실제 기업 데이터 검색
-async function fetchRealCompanies(filters) {
-    console.log('🌐 실제 기업 데이터베이스에서 검색...');
-    
-    let results = [];
-    
-    // 기업명으로 직접 검색
-    if (filters.companyName) {
-        results = searchByCompanyName(filters.companyName);
-    } else {
-        // 전체 기업 목록에서 검색
-        results = Object.values(REAL_COMPANIES_DB);
-    }
-    
-    // 필터 적용
-    const filteredResults = applyFilters(results, filters);
-    
-    // 분석 데이터 보강
-    const analyzedCompanies = filteredResults.map(company => enhanceWithAnalysis(company));
-    
-    return analyzedCompanies.sort((a, b) => b.risk_score - a.risk_score);
-}
+// API 결과 처리
+async function processAPIResults(newsData, blogData, dartData, searchQuery) {
+    const companies = [];
 
-// 기업명으로 검색
-function searchByCompanyName(companyName) {
-    console.log(`🔍 "${companyName}" 기업명 검색...`);
-    
-    const results = [];
-    const searchTerm = companyName.toLowerCase();
-    
-    // 정확한 매칭
-    if (REAL_COMPANIES_DB[companyName]) {
-        results.push(REAL_COMPANIES_DB[companyName]);
-    }
-    
-    // 부분 매칭
-    Object.keys(REAL_COMPANIES_DB).forEach(key => {
-        if (key.toLowerCase().includes(searchTerm) || searchTerm.includes(key.toLowerCase())) {
-            if (!results.find(r => r.name === REAL_COMPANIES_DB[key].name)) {
-                results.push(REAL_COMPANIES_DB[key]);
-            }
-        }
-    });
-    
-    console.log(`✅ 기업명 검색 결과: ${results.length}개`);
-    return results;
-}
+    try {
+        // 뉴스 데이터에서 기업 정보 추출
+        if (newsData && newsData.items) {
+            const newsItems = newsData.items.slice(0, 10); // 상위 10개 뉴스
 
-// 필터 적용
-function applyFilters(companies, filters) {
-    console.log('🔍 필터 적용 시작:', companies.length, '개 기업');
-    
-    return companies.filter(company => {
-        // 지역 필터
-        if (filters.city) {
-            const companyAddress = (company.address || company.district || '').toLowerCase();
-            if (!companyAddress.includes(filters.city.toLowerCase())) {
-                return false;
-            }
-        }
-        
-        if (filters.district) {
-            const companyAddress = (company.address || company.district || '').toLowerCase();
-            if (!companyAddress.includes(filters.district.toLowerCase())) {
-                return false;
-            }
-        }
-        
-        if (filters.address) {
-            const companyAddress = (company.address || company.district || '').toLowerCase();
-            if (!companyAddress.includes(filters.address.toLowerCase())) {
-                return false;
-            }
-        }
-        
-        // 업종 필터
-        if (filters.industry) {
-            const companyIndustry = (company.industry || '').toLowerCase();
-            const filterIndustry = filters.industry.toLowerCase();
-            
-            if (!companyIndustry.includes(filterIndustry)) {
-                // 업종 매핑으로 추가 확인
-                const matchingCompanies = INDUSTRY_MAPPING[filters.industry] || [];
-                if (!matchingCompanies.includes(company.name)) {
-                    return false;
+            for (const newsItem of newsItems) {
+                const companyName = extractCompanyName(newsItem.title, searchQuery);
+                if (companyName && !companies.find(c => c.name === companyName)) {
+
+                    // 개별 기업 데이터 분석
+                    const analysis = CompanyAnalyzer.analyzeCompanyData(
+                        newsData, blogData, dartData, companyName
+                    );
+
+                    const company = {
+                        name: companyName,
+                        industry: inferIndustry(newsItem.title + ' ' + newsItem.description),
+                        address: extractAddress(newsItem.description) || '주소 정보 없음',
+                        district: extractDistrict(newsItem.description) || '지역 정보 없음',
+                        employee_count: estimateEmployeeCount(newsItem.description),
+                        business_type: inferBusinessType(newsItem.description),
+                        risk_score: analysis.riskScore,
+                        prediction: analysis.prediction,
+                        signals: analysis.signals,
+                        last_update: new Date().toISOString(),
+                        news_summary: newsItem.title,
+                        news_link: newsItem.link
+                    };
+
+                    companies.push(company);
                 }
             }
         }
-        
-        // 임직원수 필터
-        if (filters.employeeMin && company.employee_count < filters.employeeMin) {
-            return false;
+
+        // DART 데이터에서 추가 기업 정보
+        if (dartData && dartData.list) {
+            for (const dartItem of dartData.list) {
+                const companyName = dartItem.corp_name;
+                if (companyName && !companies.find(c => c.name === companyName)) {
+
+                    const analysis = CompanyAnalyzer.analyzeCompanyData(
+                        newsData, blogData, dartData, companyName
+                    );
+
+                    const company = {
+                        name: companyName,
+                        industry: '상장기업',
+                        address: '주소 조회 필요',
+                        district: '지역 정보 없음',
+                        employee_count: null,
+                        business_type: '상장기업',
+                        risk_score: analysis.riskScore,
+                        prediction: analysis.prediction,
+                        signals: analysis.signals,
+                        last_update: new Date().toISOString(),
+                        dart_summary: dartItem.report_nm,
+                        dart_link: `http://dart.fss.or.kr/dsaf001/main.do?rcpNo=${dartItem.rcept_no}`
+                    };
+
+                    companies.push(company);
+                }
+            }
         }
-        if (filters.employeeMax && company.employee_count > filters.employeeMax) {
-            return false;
+
+        // 검색 결과가 없으면 검색어 기반 가상 기업 생성 (최소한의 정보)
+        if (companies.length === 0) {
+            companies.push({
+                name: searchQuery,
+                industry: '분류 필요',
+                address: '주소 조회 필요',
+                district: '지역 미상',
+                employee_count: null,
+                business_type: '정보 부족',
+                risk_score: 50,
+                prediction: '추가 정보 수집 필요',
+                signals: ['검색 결과 기반'],
+                last_update: new Date().toISOString()
+            });
         }
-        
-        return true;
+
+        return companies;
+
+    } catch (error) {
+        console.error('API 결과 처리 중 오류:', error);
+        return [];
+    }
+}
+
+// 폴백 검색 (API 실패시)
+async function performFallbackSearch(searchQuery) {
+    try {
+        console.log('폴백 검색 수행:', searchQuery);
+
+        // 개별 API 호출 시도
+        const newsPromise = FirebaseAPI.searchNaverNews(searchQuery + ' 기업');
+        const blogPromise = FirebaseAPI.searchNaverBlog(searchQuery + ' 회사');
+        const dartPromise = FirebaseAPI.searchDartAPI(searchQuery);
+
+        const [newsResult, blogResult, dartResult] = await Promise.allSettled([
+            newsPromise, blogPromise, dartPromise
+        ]);
+
+        const newsData = newsResult.status === 'fulfilled' ? newsResult.value : null;
+        const blogData = blogResult.status === 'fulfilled' ? blogResult.value : null;
+        const dartData = dartResult.status === 'fulfilled' ? dartResult.value : null;
+
+        return await processAPIResults(newsData, blogData, dartData, searchQuery);
+
+    } catch (error) {
+        console.error('폴백 검색 실패:', error);
+        return [];
+    }
+}
+
+// 유틸리티 함수들
+function extractCompanyName(title, searchQuery) {
+    // 제목에서 회사명 추출 로직
+    const patterns = [
+        /([가-힣A-Za-z]+)(?:주식회사|㈜|\s+Inc\.|\s+Corp\.|\s+Co\.)/,
+        new RegExp(`(${searchQuery})`, 'i'),
+        /([가-힣]{2,10})(그룹|전자|화학|바이오|테크)/
+    ];
+
+    for (const pattern of patterns) {
+        const match = title.match(pattern);
+        if (match) return match[1].trim();
+    }
+
+    return searchQuery;
+}
+
+function inferIndustry(text) {
+    const industryKeywords = {
+        'IT/소프트웨어': ['IT', '소프트웨어', '앱', '플랫폼', '테크', '디지털'],
+        '제조업': ['제조', '생산', '공장', '제품'],
+        '금융업': ['금융', '은행', '보험', '투자'],
+        '바이오/제약': ['바이오', '제약', '의료', '헬스케어'],
+        '유통/소매': ['유통', '소매', '쇼핑', '이커머스'],
+        '건설/부동산': ['건설', '부동산', '시공', '개발']
+    };
+
+    for (const [industry, keywords] of Object.entries(industryKeywords)) {
+        if (keywords.some(keyword => text.includes(keyword))) {
+            return industry;
+        }
+    }
+
+    return '기타';
+}
+
+function extractAddress(text) {
+    const addressPattern = /(서울|부산|대구|인천|광주|대전|울산|경기|강원|충북|충남|전북|전남|경북|경남|제주)[^\s]*[시군구][^\s]*[동로가]/;
+    const match = text.match(addressPattern);
+    return match ? match[0] : null;
+}
+
+function extractDistrict(text) {
+    const districtPattern = /(서울|부산|대구|인천|광주|대전|울산|경기|강원|충북|충남|전북|전남|경북|경남|제주)[^\s]*[시군]/;
+    const match = text.match(districtPattern);
+    return match ? match[0] : null;
+}
+
+function estimateEmployeeCount(text) {
+    const employeePatterns = [
+        /(\d+)명/,
+        /직원\s*(\d+)/,
+        /인력\s*(\d+)/
+    ];
+
+    for (const pattern of employeePatterns) {
+        const match = text.match(pattern);
+        if (match) return parseInt(match[1]);
+    }
+
+    return null;
+}
+
+function inferBusinessType(text) {
+    if (text.includes('상장') || text.includes('코스피') || text.includes('코스닥')) {
+        return '상장기업';
+    }
+    if (text.includes('중소기업') || text.includes('스타트업')) {
+        return '중소기업';
+    }
+    if (text.includes('대기업') || text.includes('그룹')) {
+        return '대기업';
+    }
+    return '일반기업';
+}
+
+// 검색 상태 업데이트
+function updateSearchStatus(message, isLoading) {
+    const statusElement = document.getElementById('searchStatus');
+    if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.className = isLoading ? 'searching' : 'completed';
+    }
+
+    const searchButton = document.querySelector('.search-btn');
+    if (searchButton) {
+        searchButton.disabled = isLoading;
+        searchButton.textContent = isLoading ? '검색 중...' : '검색';
+    }
+}
+
+// 필터 적용
+function applyFilters() {
+    const selectedIndustry = document.getElementById('industryFilter').value;
+    const selectedLocation = document.getElementById('locationFilter').value;
+    const riskRange = document.getElementById('riskRange').value;
+
+    filteredCompanies = allCompanies.filter(company => {
+        const industryMatch = !selectedIndustry || company.industry.includes(selectedIndustry);
+        const locationMatch = !selectedLocation || company.district.includes(selectedLocation);
+        const riskMatch = company.risk_score >= parseInt(riskRange);
+
+        return industryMatch && locationMatch && riskMatch;
     });
 }
 
-// 분석 데이터로 기업 정보 보강
-function enhanceWithAnalysis(company) {
-    console.log(`📈 ${company.name} 분석 데이터 보강...`);
-    
-    // 실제 분석 로직 적용
-    let enhancedRiskScore = company.risk_score || 50;
-    
-    // 업종별 조정
-    if (company.industry?.includes('IT') || company.industry?.includes('게임')) {
-        enhancedRiskScore += 10;
-    }
-    if (company.industry?.includes('엔터테인먼트')) {
-        enhancedRiskScore += 15;
-    }
-    if (company.industry?.includes('바이오')) {
-        enhancedRiskScore += 12;
-    }
-    
-    // 규모별 조정
-    if (company.employee_count > 10000) {
-        enhancedRiskScore += 5;
-    } else if (company.employee_count < 1000) {
-        enhancedRiskScore -= 5;
-    }
-    
-    // 위치별 조정
-    if (company.address?.includes('판교') || company.address?.includes('강남')) {
-        enhancedRiskScore += 10;
-    }
-    
-    // 점수 정규화
-    enhancedRiskScore = Math.min(Math.max(enhancedRiskScore, 10), 95);
-    
-    return {
-        ...company,
-        risk_score: enhancedRiskScore,
-        prediction: generatePrediction(enhancedRiskScore, company),
-        last_update: new Date().toISOString(),
-        data_counts: {
-            naver_news: Math.floor(Math.random() * 20) + 10,
-            google_results: Math.floor(Math.random() * 30) + 15,
-            dart_total: Math.floor(Math.random() * 15) + 5,
-            dart_office: Math.floor(Math.random() * 3)
-        }
-    };
-}
+// 결과 표시
+function displayResults() {
+    const resultsContainer = document.getElementById('companyResults');
+    if (!resultsContainer) return;
 
-// 예측 메시지 생성
-function generatePrediction(score, company) {
-    if (score >= 80) {
-        return `높은 확률로 12개월 내 사옥 이전 예상`;
-    } else if (score >= 60) {
-        return `24개월 내 사무공간 확장 가능성 있음`;
-    } else if (score >= 40) {
-        return `현재 안정적 운영, 장기적 이전 검토 가능`;
-    } else {
-        return `단기간 내 이전 가능성 낮음`;
-    }
-}
-
-// 지역 선택기 초기화
-function initializeLocationSelectors() {
-    const districtData = {
-        '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-        '경기도': ['고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시', '남양주시', '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시', '안양시', '양주시', '오산시', '용인시', '의왕시', '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'],
-        '인천광역시': ['강화군', '계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '옹진군', '중구'],
-        '부산광역시': ['강서구', '금정구', '기장군', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'],
-        '대구광역시': ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
-        '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
-        '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
-        '울산광역시': ['남구', '동구', '북구', '울주군', '중구'],
-        '세종특별자치시': ['세종특별자치시']
-    };
-
-    const citySelect = document.getElementById('citySelect');
-    const districtSelect = document.getElementById('districtSelect');
-
-    if (citySelect && districtSelect) {
-        citySelect.addEventListener('change', function() {
-            const selectedCity = this.value;
-            districtSelect.innerHTML = '<option value="">구/군 선택</option>';
-
-            if (selectedCity && districtData[selectedCity]) {
-                districtData[selectedCity].forEach(district => {
-                    const option = document.createElement('option');
-                    option.value = district;
-                    option.textContent = district;
-                    districtSelect.appendChild(option);
-                });
-            }
-        });
-    }
-}
-
-// 초기 빈 상태 설정
-function initializeEmptyState() {
-    document.getElementById('analyzedCompanies').textContent = '0';
-    document.getElementById('totalCompanies').textContent = '0';
-    document.getElementById('highRiskCompanies').textContent = '0';
-    document.getElementById('collectionStatus').textContent = '대기 중';
-    document.getElementById('statusSpinner').style.display = 'none';
-
-    const listContainer = document.getElementById('companyList');
-    listContainer.innerHTML = `
-        <div class="col-12 text-center py-5">
-            <div class="mb-4">
-                <i class="bi bi-search" style="font-size: 4rem; color: #6c757d;"></i>
-            </div>
-            <h5 class="text-muted">실제 기업 검색을 시작하세요</h5>
-            <p class="text-muted">
-                위의 검색 조건을 설정하고 "🔍 검색" 버튼을 클릭하면<br>
-                실제 기업 데이터베이스에서 조건에 맞는 기업들을 찾아드립니다.
-            </p>
-            <div class="mt-4">
-                <button class="btn btn-primary" onclick="document.getElementById('citySelect').focus()">
-                    검색 조건 설정하기
-                </button>
-            </div>
-        </div>
-    `;
-
-    updateSearchResultCount(0);
-    updateLastUpdateTime();
-}
-
-// 회사 리스트 업데이트
-function updateCompanyListReal(companies) {
-    const listContainer = document.getElementById('companyList');
-    listContainer.innerHTML = '';
-
-    if (companies.length === 0) {
-        listContainer.innerHTML = `
-            <div class="col-12 text-center py-3">
-                <p class="text-muted">검색 조건에 맞는 기업이 없습니다.</p>
+    if (filteredCompanies.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="no-results">
+                <p>검색 결과가 없습니다.</p>
+                <p>다른 검색어나 필터 조건을 시도해보세요.</p>
             </div>
         `;
         return;
     }
 
-    const sortedCompanies = companies.sort((a, b) => b.risk_score - a.risk_score);
-
-    sortedCompanies.forEach(company => {
-        const card = createCompanyCardReal(company);
-        listContainer.appendChild(card);
-    });
-}
-
-// 회사 카드 생성
-function createCompanyCardReal(company) {
-    const col = document.createElement('div');
-    col.className = 'col-lg-6 mb-4';
-
-    const companyName = company.name || '정보 없음';
-    const address = company.address || company.district || '주소 정보 없음';
-    const addressDetail = company.address_detail || '';
-    const employeeCount = company.employee_count ? company.employee_count.toLocaleString() : '정보 없음';
-    const industry = company.industry || '업종 정보 없음';
-    const website = company.website || '#';
-    const phone = company.phone || '연락처 정보 없음';
-    const email = company.email || '이메일 정보 없음';
-    const riskScore = company.risk_score || 0;
-    const prediction = company.prediction || '분석 중';
-
-    // 위험도에 따른 카드 스타일
-    let cardClass = 'company-card h-100 shadow-sm';
-    let badgeClass = 'bg-secondary';
-    
-    if (riskScore >= 70) {
-        cardClass += ' border-danger';
-        badgeClass = 'bg-danger';
-    } else if (riskScore >= 50) {
-        cardClass += ' border-warning';
-        badgeClass = 'bg-warning';
-    } else {
-        cardClass += ' border-success';
-        badgeClass = 'bg-success';
-    }
-
-    col.innerHTML = `
-        <div class="card ${cardClass}">
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-8">
-                        <h5 class="card-title text-primary mb-1">${companyName}</h5>
-                        <span class="badge bg-info me-2">${industry}</span>
-                        <span class="badge ${badgeClass}">${riskScore}점</span>
-                    </div>
-                    <div class="col-4 text-end">
-                        <small class="text-muted">마지막 업데이트</small><br>
-                        <small class="text-secondary">${formatDate(company.last_update)}</small>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="row mb-2">
-                        <div class="col-12">
-                            <strong>📍 주소</strong>
-                            <div class="mt-1">
-                                <div class="text-dark">${address}</div>
-                                ${addressDetail ? `<small class="text-muted">${addressDetail}</small>` : ''}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-6">
-                            <strong>👥 임직원수</strong>
-                            <div class="text-info fw-bold">${employeeCount}명</div>
-                        </div>
-                        <div class="col-6">
-                            <strong>🌐 웹사이트</strong>
-                            <div>
-                                ${website !== '#' ? 
-                                    `<a href="${website}" target="_blank" class="text-decoration-none small">${website.replace('https://', '').replace('http://', '')}</a>` : 
-                                    '<span class="text-muted small">정보 없음</span>'
-                                }
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-6">
-                            <strong>📞 대표전화</strong>
-                            <div class="small">${phone}</div>
-                        </div>
-                        <div class="col-6">
-                            <strong>📧 대표 이메일</strong>
-                            <div class="small">
-                                <a href="mailto:${email}" class="text-decoration-none">${email}</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <strong>📈 이전 예측</strong>
-                            <div class="text-muted small mt-1">${prediction}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">분석 점수: ${riskScore}점</small>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewDetailsReal('${companyName}')">
-                        상세보기
-                    </button>
-                </div>
+    resultsContainer.innerHTML = filteredCompanies.map(company => `
+        <div class="company-card" onclick="showCompanyDetail('${company.name}')">
+            <div class="company-header">
+                <h3 class="company-name">${company.name}</h3>
+                <div class="risk-score ${getRiskLevel(company.risk_score)}">${company.risk_score}</div>
+            </div>
+            <div class="company-info">
+                <p class="industry">${company.industry}</p>
+                <p class="address">${company.address}</p>
+                <p class="prediction">${company.prediction}</p>
+            </div>
+            <div class="company-signals">
+                ${company.signals.map(signal => `<span class="signal-tag">${signal}</span>`).join('')}
             </div>
         </div>
-    `;
-
-    return col;
+    `).join('');
 }
 
-// 상태 카드 업데이트
-function updateStatusCardsFromSearchResults(companies) {
-    const total = companies.length;
-    const analyzed = companies.length;
-    const highScoreCompanies = companies.filter(c => (c.risk_score || 0) >= 70).length;
+// 통계 업데이트
+function updateStats() {
+    const totalCount = document.getElementById('totalCompanies');
+    const highRiskCount = document.getElementById('highRiskCompanies');
+    const avgRiskScore = document.getElementById('avgRiskScore');
 
-    document.getElementById('analyzedCompanies').textContent = analyzed;
-    document.getElementById('totalCompanies').textContent = total;
-    document.getElementById('highRiskCompanies').textContent = highScoreCompanies;
+    if (totalCount) totalCount.textContent = filteredCompanies.length;
 
-    if (total > 0) {
-        document.getElementById('collectionStatus').textContent = '검색 완료';
-        document.getElementById('statusSpinner').style.display = 'none';
-    } else {
-        document.getElementById('collectionStatus').textContent = '결과 없음';
-        document.getElementById('statusSpinner').style.display = 'none';
-    }
+    const highRisk = filteredCompanies.filter(c => c.risk_score >= 70).length;
+    if (highRiskCount) highRiskCount.textContent = highRisk;
+
+    const avgRisk = filteredCompanies.length > 0
+        ? Math.round(filteredCompanies.reduce((sum, c) => sum + c.risk_score, 0) / filteredCompanies.length)
+        : 0;
+    if (avgRiskScore) avgRiskScore.textContent = avgRisk;
 }
 
-// 검색 결과 개수 업데이트
-function updateSearchResultCount(count) {
-    const headerElement = document.querySelector('.card-header h5');
-    if (headerElement && headerElement.textContent.includes('사무실 이전 기업 리스트')) {
-        headerElement.textContent = `사무실 이전 기업 리스트 (${count}개)`;
-    }
+// 위험도 레벨 계산
+function getRiskLevel(score) {
+    if (score >= 80) return 'high-risk';
+    if (score >= 60) return 'medium-risk';
+    return 'low-risk';
 }
 
-// 상세 정보 보기
-function viewDetailsReal(companyName) {
-    console.log(`🔍 ${companyName} 상세 정보 표시`);
-    
-    const company = filteredCompanies.find(c => c.name === companyName);
-    
-    if (!company) {
-        showUserError('기업 정보를 찾을 수 없습니다.');
-        return;
-    }
+// 기업 상세 정보 표시
+async function showCompanyDetail(companyName) {
+    const company = allCompanies.find(c => c.name === companyName);
+    if (!company) return;
 
     currentModalCompany = company;
 
-    // 모달에 정보 설정
+    try {
+        // 추가 데이터 수집
+        updateModalContent(company);
+        document.getElementById('companyDetailModal').style.display = 'block';
+
+        // 백그라운드에서 상세 정보 업데이트
+        await enrichCompanyData(company);
+
+    } catch (error) {
+        console.error('기업 상세 정보 로드 실패:', error);
+    }
+}
+
+// 기업 데이터 보강
+async function enrichCompanyData(company) {
+    try {
+        const [newsResult, blogResult, dartResult] = await Promise.allSettled([
+            FirebaseAPI.searchNaverNews(company.name + ' 사옥 이전'),
+            FirebaseAPI.searchNaverBlog(company.name + ' 확장'),
+            FirebaseAPI.searchDartAPI(company.name)
+        ]);
+
+        const enrichedData = {
+            detailedNews: newsResult.status === 'fulfilled' ? newsResult.value : null,
+            detailedBlogs: blogResult.status === 'fulfilled' ? blogResult.value : null,
+            detailedDart: dartResult.status === 'fulfilled' ? dartResult.value : null
+        };
+
+        // 모달 업데이트
+        updateModalContent(company, enrichedData);
+
+    } catch (error) {
+        console.error('데이터 보강 실패:', error);
+    }
+}
+
+// 모달 콘텐츠 업데이트
+function updateModalContent(company, enrichedData = null) {
     document.getElementById('modalCompanyName').textContent = company.name;
-    document.getElementById('modalIndustry').textContent = company.industry || '업종 정보 없음';
-    document.getElementById('modalEmployeeCount').textContent = company.employee_count ? company.employee_count.toLocaleString() : '정보 없음';
-    document.getElementById('modalAddress').textContent = company.address || company.district || '주소 정보 없음';
-    document.getElementById('modalScore').textContent = company.risk_score || 0;
+    document.getElementById('modalIndustry').textContent = company.industry;
+    document.getElementById('modalAddress').textContent = company.address;
+    document.getElementById('modalRiskScore').textContent = company.risk_score;
+    document.getElementById('modalRiskScore').className = `risk-score ${getRiskLevel(company.risk_score)}`;
+    document.getElementById('modalPrediction').textContent = company.prediction;
 
-    // 분석 설명
-    const explanation = generateAnalysisExplanation(company);
-    document.getElementById('modalAnalysisExplanation').textContent = explanation;
+    // 신호 업데이트
+    const signalsContainer = document.getElementById('modalSignals');
+    signalsContainer.innerHTML = company.signals.map(signal =>
+        `<span class="signal-tag">${signal}</span>`
+    ).join('');
 
-    // 근거 자료 테이블
-    populateEvidenceTable(company);
-
-    // 모달 표시
-    const modal = new bootstrap.Modal(document.getElementById('companyDetailModal'));
-    modal.show();
+    // 상세 데이터가 있으면 추가 표시
+    if (enrichedData) {
+        updateEnrichedData(enrichedData);
+    }
 }
 
-// 분석 점수 설명 생성
-function generateAnalysisExplanation(company) {
-    const score = company.risk_score || 0;
-    const dataCounts = company.data_counts || {};
+// 보강된 데이터 표시
+function updateEnrichedData(enrichedData) {
+    const { detailedNews, detailedBlogs, detailedDart } = enrichedData;
 
-    let explanation = `${company.name}의 사무실 이전 분석 점수는 ${score}점입니다. `;
-
-    if (score >= 70) {
-        explanation += `높은 점수를 받은 주요 요인은 `;
-    } else if (score >= 40) {
-        explanation += `중간 수준의 점수를 받은 이유는 `;
-    } else {
-        explanation += `낮은 점수를 받은 이유는 `;
+    // 뉴스 섹션 업데이트
+    const newsSection = document.getElementById('modalNewsSection');
+    if (newsSection && detailedNews && detailedNews.items) {
+        const newsHTML = detailedNews.items.slice(0, 5).map(item => `
+            <div class="news-item">
+                <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
+                <p>${item.description}</p>
+                <small>${new Date(item.pubDate).toLocaleDateString()}</small>
+            </div>
+        `).join('');
+        newsSection.innerHTML = `<h3>관련 뉴스</h3>${newsHTML}`;
     }
 
-    const factors = [];
-
-    if (company.industry?.includes('IT') || company.industry?.includes('게임')) {
-        factors.push('IT/게임 업종의 빠른 성장성');
+    // DART 섹션 업데이트
+    const dartSection = document.getElementById('modalDartSection');
+    if (dartSection && detailedDart && detailedDart.list) {
+        const dartHTML = detailedDart.list.slice(0, 3).map(item => `
+            <div class="dart-item">
+                <h4>${item.report_nm}</h4>
+                <p>제출일: ${item.rcept_dt}</p>
+                <small>공시 유형: ${item.corp_cls}</small>
+            </div>
+        `).join('');
+        dartSection.innerHTML = `<h3>공시 정보</h3>${dartHTML}`;
     }
-
-    if (company.employee_count > 5000) {
-        factors.push('대규모 기업으로 공간 확장 필요성이 높음');
-    }
-
-    if (company.address?.includes('판교') || company.address?.includes('강남')) {
-        factors.push('임대료가 높은 지역에 위치');
-    }
-
-    if (score >= 70) {
-        factors.push('업계 내 급성장 기업으로 분류됨');
-    }
-
-    if (factors.length > 0) {
-        explanation += factors.join(', ') + '입니다. ';
-    } else {
-        explanation += '특별한 이전 신호가 감지되지 않았습니다. ';
-    }
-
-    explanation += `실제 기업 정보와 업계 동향을 종합하여 분석하였습니다.`;
-
-    return explanation;
 }
 
-// 근거 자료 테이블 채우기
-function populateEvidenceTable(company) {
-    const tableBody = document.getElementById('modalEvidenceTable');
-    tableBody.innerHTML = '';
+// 모달 닫기
+function closeModal() {
+    document.getElementById('companyDetailModal').style.display = 'none';
+    currentModalCompany = null;
+}
 
-    const evidenceData = [
-        {
-            type: '정보',
-            title: `${company.name} 기업 정보`,
-            source: '기업 데이터베이스',
-            date: formatDate(company.last_update),
-            link: company.website || '#'
-        },
-        {
-            type: '지도',
-            title: `${company.name} 위치 정보`,
-            source: '카카오맵',
-            date: formatDate(company.last_update),
-            link: `https://map.kakao.com/link/search/${encodeURIComponent(company.name + ' ' + company.address)}`
-        },
-        {
-            type: '검색',
-            title: `${company.name} 뉴스 검색`,
-            source: '네이버 검색',
-            date: formatDate(company.last_update),
-            link: `https://search.naver.com/search.naver?query=${encodeURIComponent(company.name + ' 사옥 이전')}`
+// 초기화
+function initializeLocationSelectors() {
+    const locationFilter = document.getElementById('locationFilter');
+    if (locationFilter) {
+        const locations = [
+            '서울특별시', '부산광역시', '대구광역시', '인천광역시',
+            '광주광역시', '대전광역시', '울산광역시', '경기도',
+            '강원도', '충청북도', '충청남도', '전라북도',
+            '전라남도', '경상북도', '경상남도', '제주특별자치도'
+        ];
+
+        locationFilter.innerHTML = '<option value="">전체 지역</option>' +
+            locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+    }
+}
+
+// 이벤트 리스너
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard 초기화 시작');
+
+    // 위치 선택기 초기화
+    initializeLocationSelectors();
+
+    // 검색 버튼 이벤트
+    const searchBtn = document.querySelector('.search-btn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', searchCompanies);
+    }
+
+    // Enter 키 검색
+    const searchInput = document.getElementById('companySearch');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchCompanies();
+            }
+        });
+    }
+
+    // 필터 변경 이벤트
+    ['industryFilter', 'locationFilter', 'riskRange'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', function() {
+                if (allCompanies.length > 0) {
+                    applyFilters();
+                    displayResults();
+                    updateStats();
+                }
+            });
         }
-    ];
-
-    evidenceData.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><span class="badge bg-${item.type === '뉴스' ? 'primary' : item.type === '공시' ? 'warning' : item.type === '지도' ? 'info' : 'success'}">${item.type}</span></td>
-            <td>${item.title}</td>
-            <td>${item.source}</td>
-            <td>${item.date}</td>
-            <td><a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-primary">보기</a></td>
-        `;
-        tableBody.appendChild(row);
     });
-}
 
-// 로딩 상태 표시
-function showLoadingState() {
-    document.getElementById('collectionStatus').textContent = '검색 중...';
-    document.getElementById('statusSpinner').style.display = 'inline-block';
-    
-    const listContainer = document.getElementById('companyList');
-    listContainer.innerHTML = `
-        <div class="col-12 text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">검색 중...</span>
-            </div>
-            <h5 class="mt-3">실제 기업 데이터를 검색하고 있습니다...</h5>
-            <p class="text-muted">기업 데이터베이스에서 조건에 맞는 기업을 찾는 중</p>
-        </div>
-    `;
-}
-
-// 로딩 상태 숨김
-function hideLoadingState() {
-    document.getElementById('collectionStatus').textContent = '완료';
-    document.getElementById('statusSpinner').style.display = 'none';
-}
-
-// 검색 결과 없음 메시지
-function showNoResultsMessage(filters) {
-    const listContainer = document.getElementById('companyList');
-    listContainer.innerHTML = `
-        <div class="col-12 text-center py-5">
-            <i class="bi bi-search" style="font-size: 3rem; color: #6c757d;"></i>
-            <h5 class="mt-3 text-muted">검색 결과가 없습니다</h5>
-            <p class="text-muted">
-                입력하신 조건에 맞는 기업을 찾을 수 없습니다.<br>
-                검색 조건을 변경해보세요.
-            </p>
-            <button class="btn btn-outline-primary" onclick="resetFilters()">
-                검색 조건 초기화
-            </button>
-        </div>
-    `;
-    
-    updateSearchResultCount(0);
-    updateStatusCardsFromSearchResults([]);
-}
-
-// 검색 성공 메시지
-function showSearchSuccessMessage(count) {
-    const successAlert = document.createElement('div');
-    successAlert.className = 'alert alert-success alert-dismissible fade show';
-    successAlert.innerHTML = `
-        <i class="bi bi-check-circle"></i> 
-        실제 기업 데이터 검색 완료! ${count}개 기업을 찾았습니다.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    const container = document.querySelector('.container-fluid');
-    container.insertBefore(successAlert, container.children[1]);
-    
-    setTimeout(() => {
-        if (successAlert.parentNode) {
-            successAlert.remove();
+    // 모달 닫기 이벤트
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('companyDetailModal');
+        if (event.target === modal) {
+            closeModal();
         }
-    }, 5000);
-}
+    });
 
-// 필터 초기화
-function resetFilters() {
-    document.getElementById('citySelect').value = '';
-    document.getElementById('districtSelect').innerHTML = '<option value="">구/군 선택</option>';
-    document.getElementById('addressInput').value = '';
-    document.getElementById('industrySelect').value = '';
-    document.getElementById('employeeMin').value = '';
-    document.getElementById('employeeMax').value = '';
-    document.getElementById('companyNameInput').value = '';
-    
-    initializeEmptyState();
-}
+    console.log('Dashboard 초기화 완료');
+});
 
-// 전체 기업 보기  
-function showAllCompanies() {
-    if (allCompanies.length === 0) {
-        // 전체 기업 목록 로드
-        const allRealCompanies = Object.values(REAL_COMPANIES_DB).map(company => enhanceWithAnalysis(company));
-        allCompanies = allRealCompanies;
-        filteredCompanies = allRealCompanies;
-    } else {
-        filteredCompanies = allCompanies;
-    }
-    
-    updateCompanyListReal(filteredCompanies);
-    updateSearchResultCount(filteredCompanies.length);
-    updateStatusCardsFromSearchResults(filteredCompanies);
-    console.log('📋 전체 기업 표시:', filteredCompanies.length + '개');
-}
-
-// 데이터 새로고침
-function refreshData() {
-    console.log('🔄 데이터 새로고침...');
-    
-    const hasFilters = document.getElementById('citySelect').value || 
-                      document.getElementById('industrySelect').value ||
-                      document.getElementById('companyNameInput').value.trim();
-    
-    if (hasFilters) {
-        searchCompanies();
-    } else {
-        showAllCompanies();
-    }
-}
-
-// 에러 표시
-function showError(message) {
-    console.error('❌ ' + message);
-    
-    document.getElementById('collectionStatus').textContent = '오류';
-    document.getElementById('statusSpinner').style.display = 'none';
-    
-    const listContainer = document.getElementById('companyList');
-    listContainer.innerHTML = `
-        <div class="col-12">
-            <div class="alert alert-danger" role="alert">
-                <h5><i class="bi bi-exclamation-triangle"></i> 검색 실패</h5>
-                <p>${message}</p>
-                <div class="mt-3">
-                    <button class="btn btn-outline-danger me-2" onclick="searchCompanies()">
-                        다시 검색
-                    </button>
-                    <button class="btn btn-outline-secondary" onclick="resetFilters()">
-                        검색 조건 초기화
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// 마지막 업데이트 시간 업데이트
-function updateLastUpdateTime(date) {
-    const updateTime = date ? new Date(date) : new Date();
-    document.getElementById('lastUpdate').textContent =
-        `마지막 업데이트: ${formatDate(updateTime)}`;
-}
-
-// 날짜 포맷팅
-function formatDate(date) {
-    if (!date) return '-';
-    const d = new Date(date);
-    return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
-
-// 카카오맵 열기
-function openKakaoMap() {
-    if (!currentModalCompany) {
-        showUserError('기업 정보가 없습니다.');
-        return;
-    }
-
-    const address = currentModalCompany.address || currentModalCompany.district || '';
-    const companyName = currentModalCompany.name;
-
-    if (!address) {
-        showUserError('주소 정보가 없어 지도를 표시할 수 없습니다.');
-        return;
-    }
-
-    const kakaoMapUrl = `https://map.kakao.com/link/search/${encodeURIComponent(companyName + ' ' + address)}`;
-    window.open(kakaoMapUrl, '_blank', 'width=800,height=600');
-}
-
-// 분석 보고서 다운로드
-function downloadReport() {
-    if (!currentModalCompany) {
-        showUserError('기업 정보가 없습니다.');
-        return;
-    }
-
-    const report = generateTextReport(currentModalCompany);
-    
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentModalCompany.name}_분석보고서.txt`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-}
-
-// 텍스트 보고서 생성
-function generateTextReport(company) {
-    const report = `
-${company.name} 사무실 이전 분석 보고서
-======================================
-
-■ 기업 기본 정보
-- 기업명: ${company.name}
-- 업종: ${company.industry}
-- 임직원수: ${company.employee_count}명
-- 주소: ${company.address || company.district}
-- 웹사이트: ${company.website || '정보 없음'}
-- 대표전화: ${company.phone || '정보 없음'}
-- 대표이메일: ${company.email || '정보 없음'}
-
-■ 분석 결과
-- 분석 점수: ${company.risk_score}점
-- 예측: ${company.prediction}
-- 분석일시: ${formatDate(company.last_update)}
-
-■ 분석 근거
-${generateAnalysisExplanation(company)}
-
-■ 분석 기준
-- 업종별 성장성
-- 기업 규모 및 확장 필요성
-- 위치별 임대료 및 시장 상황
-- 실제 기업 정보 기반 분석
-
-※ 본 보고서는 실제 기업 정보를 바탕으로 생성되었습니다.
-※ 생성일시: ${new Date().toLocaleString()}
-    `;
-
-    return report.trim();
-}
+// 전역 함수로 노출
+window.searchCompanies = searchCompanies;
+window.showCompanyDetail = showCompanyDetail;
+window.closeModal = closeModal;
