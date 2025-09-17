@@ -289,16 +289,21 @@
         function showAllCompanies() {
             // 모든 필터 초기화 후 검색
             resetFilters();
-            // 임시로 "기업" 검색
-            document.getElementById('companyNameInput').value = '기업';
+            // 기업명 없이 업종별 검색으로 전체 기업 조회
+            document.getElementById('industrySelect').value = 'IT';
             searchCompanies();
         }
 
         function refreshData() {
-            if (document.getElementById('companyNameInput').value.trim()) {
+            const companyName = document.getElementById('companyNameInput').value.trim();
+            const industry = document.getElementById('industrySelect').value;
+            const city = document.getElementById('citySelect').value;
+            const district = document.getElementById('districtSelect').value;
+
+            if (companyName || industry || city || district) {
                 searchCompanies();
             } else {
-                alert('검색할 기업명을 입력해주세요.');
+                alert('검색 조건을 하나 이상 입력해주세요.\n(기업명, 업종, 지역 중 선택)');
             }
         }
 

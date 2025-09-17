@@ -38,9 +38,8 @@ exports.searchNaverNews = functions.https.onCall(async (data, context) => {
     try {
         const { query, display = 50, start = 1, sort = 'date' } = data;
 
-        if (!query) {
-            throw new functions.https.HttpsError('invalid-argument', 'Query parameter is required');
-        }
+        // 빈 값도 허용하되 기본값 사용
+        const searchQuery = query || '기업 사옥';
 
         const response = await axios.get(API_ENDPOINTS.naver_news, {
             httpsAgent: httpsAgent,
@@ -50,7 +49,7 @@ exports.searchNaverNews = functions.https.onCall(async (data, context) => {
                 'User-Agent': 'Mozilla/5.0 (compatible; Firebase Functions)'
             },
             params: {
-                query,
+                query: searchQuery,
                 display,
                 start,
                 sort
@@ -88,9 +87,8 @@ exports.searchNaverBlog = functions.https.onCall(async (data, context) => {
     try {
         const { query, display = 30, start = 1, sort = 'date' } = data;
 
-        if (!query) {
-            throw new functions.https.HttpsError('invalid-argument', 'Query parameter is required');
-        }
+        // 빈 값도 허용하되 기본값 사용
+        const searchQuery = query || '기업 사옥';
 
         const response = await axios.get(API_ENDPOINTS.naver_blog, {
             httpsAgent: httpsAgent,
@@ -100,7 +98,7 @@ exports.searchNaverBlog = functions.https.onCall(async (data, context) => {
                 'User-Agent': 'Mozilla/5.0 (compatible; Firebase Functions)'
             },
             params: {
-                query,
+                query: searchQuery,
                 display,
                 start,
                 sort
@@ -333,6 +331,11 @@ function buildSearchQuery(query, companyName, industry, city) {
     if (industry) searchTerms.push(industry);
     if (city) searchTerms.push(city);
 
+    // 아무 조건도 없으면 기본 검색어 사용
+    if (searchTerms.length === 0) {
+        searchTerms.push('기업', '회사');
+    }
+
     // 기본 키워드 추가
     searchTerms.push('사옥', '이전', '확장');
 
@@ -434,12 +437,8 @@ exports.searchNaverNewsHttp = functions.https.onRequest(async (req, res) => {
 
             const { query, display = 50, start = 1, sort = 'date' } = req.method === 'POST' ? req.body : req.query;
 
-            if (!query) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Query parameter is required'
-                });
-            }
+            // 빈 값도 허용하되 기본값 사용
+            const searchQuery = query || '기업 사옥';
 
             const response = await axios.get(API_ENDPOINTS.naver_news, {
                 httpsAgent: httpsAgent,
@@ -448,7 +447,7 @@ exports.searchNaverNewsHttp = functions.https.onRequest(async (req, res) => {
                     'X-Naver-Client-Secret': API_KEYS.naver_client_secret,
                     'User-Agent': 'Mozilla/5.0 (compatible; Firebase Functions)'
                 },
-                params: { query, display, start, sort },
+                params: { query: searchQuery, display, start, sort },
                 timeout: 10000
             });
 
@@ -477,12 +476,8 @@ exports.searchNaverBlogHttp = functions.https.onRequest(async (req, res) => {
 
             const { query, display = 30, start = 1, sort = 'date' } = req.method === 'POST' ? req.body : req.query;
 
-            if (!query) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Query parameter is required'
-                });
-            }
+            // 빈 값도 허용하되 기본값 사용
+            const searchQuery = query || '기업 사옥';
 
             const response = await axios.get(API_ENDPOINTS.naver_blog, {
                 httpsAgent: httpsAgent,
@@ -491,7 +486,7 @@ exports.searchNaverBlogHttp = functions.https.onRequest(async (req, res) => {
                     'X-Naver-Client-Secret': API_KEYS.naver_blog_client_secret,
                     'User-Agent': 'Mozilla/5.0 (compatible; Firebase Functions)'
                 },
-                params: { query, display, start, sort },
+                params: { query: searchQuery, display, start, sort },
                 timeout: 10000
             });
 

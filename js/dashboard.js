@@ -177,22 +177,37 @@ async function searchCompanies() {
         const searchQuery = document.getElementById('companyNameInput').value.trim();
         const selectedIndustry = document.getElementById('industrySelect').value;
         const selectedLocation = document.getElementById('citySelect').value;
+        const selectedDistrict = document.getElementById('districtSelect')?.value || '';
         const riskRange = 50; // 기본값
 
-        if (!searchQuery) {
-            alert('검색할 기업명을 입력해주세요.');
+        // 검색 조건 체크 - 하나라도 있으면 검색 가능
+        const hasAnyCondition = searchQuery || selectedIndustry || selectedLocation || selectedDistrict;
+
+        if (!hasAnyCondition) {
+            alert('검색 조건을 하나 이상 입력해주세요.\n(기업명, 업종, 지역 중 선택)');
+            updateSearchStatus('대기 중', false);
+            isSearching = false;
             return;
         }
 
-        console.log('검색 시작:', { searchQuery, selectedIndustry, selectedLocation, riskRange });
+        console.log('검색 시작:', {
+            searchQuery: searchQuery || '(없음)',
+            selectedIndustry: selectedIndustry || '(없음)',
+            selectedLocation: selectedLocation || '(없음)',
+            selectedDistrict: selectedDistrict || '(없음)',
+            riskRange
+        });
 
         // Firebase Functions를 통한 통합 API 검색
         const searchParams = {
-            companyName: searchQuery,
+            query: searchQuery || selectedIndustry || selectedLocation || '기업',
+            companyName: searchQuery || '',
             industry: selectedIndustry || '',
-            location: selectedLocation || '',
-            riskThreshold: parseInt(riskRange) || 50
+            city: selectedLocation || ''
         };
+
+        // 콘솔 로그 개선
+        console.log('API 요청 파라미터:', searchParams);
 
         updateSearchStatus('API 데이터 수집 중...', true);
 
@@ -226,7 +241,7 @@ async function searchCompanies() {
         } else {
             console.error('API 검색 실패:', apiResponse.error || 'No results found');
             // 실패시 기본 검색 시도
-            allCompanies = await performFallbackSearch(searchQuery);
+            allCompanies = await performFallbackSearch(searchQuery, selectedIndustry, selectedLocation, selectedDistrict);
         }
 
         // 필터 적용
@@ -238,14 +253,17 @@ async function searchCompanies() {
 
         updateSearchStatus(`검색 완료 - ${allCompanies.length}개 기업 발견`, false);
 
-    } catch (error) {
-        console.error('검색 중 오류:', error);
-        console.error('오류 상세 정보:', {
-            message: error.message,
-            stack: error.stack,
-            searchQuery,
-            selectedIndustry,
-            selectedLocation
+    } catch (apiError) {
+        console.error('API 호출 오류 상세:', {
+            message: apiError.message,
+            response: apiError.response,
+            status: apiError.status,
+            searchParams: {
+                searchQuery,
+                selectedIndustry,
+                selectedLocation,
+                selectedDistrict
+            }
         });
 
         updateSearchStatus('검색 중 오류 발생 - 폴백 검색 시도 중...', true);
@@ -253,7 +271,7 @@ async function searchCompanies() {
         try {
             // 자동으로 폴백 검색 실행
             console.log('자동 폴백 검색 시작');
-            allCompanies = await performFallbackSearch(searchQuery);
+            allCompanies = await performFallbackSearch(searchQuery, selectedIndustry, selectedLocation, selectedDistrict);
             applyFilters();
             displayResults();
             updateStats();
@@ -338,8 +356,8 @@ async function processAPIResults(newsData, blogData, dartData, searchQuery) {
             }
         }
 
-        // 검색 결과가 없으면 검색어 기반 가상 기업 생성 (최소한의 정보)
-        if (companies.length === 0) {
+        // 검색 결과가 없으면 기본 정보 생성 (검색어가 있을 때만)
+        if (companies.length === 0 && searchQuery && searchQuery.trim()) {
             companies.push({
                 name: searchQuery,
                 industry: '분류 필요',
@@ -363,14 +381,23 @@ async function processAPIResults(newsData, blogData, dartData, searchQuery) {
 }
 
 // 폴백 검색 (API 실패시)
-async function performFallbackSearch(searchQuery) {
+async function performFallbackSearch(searchQuery, selectedIndustry, selectedLocation, selectedDistrict) {
     try {
-        console.log('폴백 검색 수행:', searchQuery);
+        console.log('폴백 검색 수행:', { searchQuery, selectedIndustry, selectedLocation, selectedDistrict });
+
+        // 검색 쿠리 생성
+        let searchTerms = [];
+        if (searchQuery && searchQuery.trim()) searchTerms.push(searchQuery);
+        if (selectedIndustry) searchTerms.push(selectedIndustry);
+        if (selectedLocation) searchTerms.push(selectedLocation);
+        if (selectedDistrict) searchTerms.push(selectedDistrict);
+
+        const fallbackQuery = searchTerms.length > 0 ? searchTerms.join(' ') : '기업';
 
         // 개별 API 호출 시도
-        const newsPromise = FirebaseAPI.searchNaverNews(searchQuery + ' 기업');
-        const blogPromise = FirebaseAPI.searchNaverBlog(searchQuery + ' 회사');
-        const dartPromise = FirebaseAPI.searchDartAPI(searchQuery);
+        const newsPromise = FirebaseAPI.searchNaverNews(fallbackQuery + ' 기업');
+        const blogPromise = FirebaseAPI.searchNaverBlog(fallbackQuery + ' 회사');
+        const dartPromise = FirebaseAPI.searchDartAPI(searchQuery || fallbackQuery);
 
         const [newsResult, blogResult, dartResult] = await Promise.allSettled([
             newsPromise, blogPromise, dartPromise
@@ -385,13 +412,18 @@ async function performFallbackSearch(searchQuery) {
 
         const companies = await processAPIResults(newsData, blogData, dartData, searchQuery);
 
-        // 검색 결과가 없으면 최소한의 기본 정보 반환
+        // 검색 결과가 없으면 필터 조건에 따른 기본 정보 반환
         if (companies.length === 0) {
+            let companyName = searchQuery || '미상 기업';
+            let industry = selectedIndustry || '정보 수집 필요';
+            let address = selectedLocation ? `${selectedLocation} ${selectedDistrict || ''} 지역` : '주소 조회 필요';
+            let district = selectedLocation || '지역 미상';
+
             return [{
-                name: searchQuery,
-                industry: '정보 수집 필요',
-                address: '주소 조회 필요',
-                district: '지역 미상',
+                name: companyName,
+                industry: industry,
+                address: address.trim(),
+                district: district,
                 employee_count: null,
                 business_type: '분류 필요',
                 risk_score: 50,
@@ -407,11 +439,16 @@ async function performFallbackSearch(searchQuery) {
     } catch (error) {
         console.error('폴백 검색 실패:', error);
         // 완전 실패 시에도 기본 정보 반환
+        let companyName = searchQuery || '검색 실패';
+        let industry = selectedIndustry || '정보 없음';
+        let address = selectedLocation ? `${selectedLocation} ${selectedDistrict || ''} 지역` : '정보 없음';
+        let district = selectedLocation || '정보 없음';
+
         return [{
-            name: searchQuery,
-            industry: '정보 없음',
-            address: '정보 없음',
-            district: '정보 없음',
+            name: companyName,
+            industry: industry,
+            address: address.trim(),
+            district: district,
             employee_count: null,
             business_type: '정보 없음',
             risk_score: 0,
@@ -428,16 +465,23 @@ function extractCompanyName(title, searchQuery) {
     // 제목에서 회사명 추출 로직
     const patterns = [
         /([가-힣A-Za-z]+)(?:주식회사|㈜|\s+Inc\.|\s+Corp\.|\s+Co\.)/,
-        new RegExp(`(${searchQuery})`, 'i'),
-        /([가-힣]{2,10})(그룹|전자|화학|바이오|테크)/
+        /([가-힣]{2,10})(그룹|전자|화학|바이오|테크|시스템|솔루션|네트웍스|커뮤니케이션즈)/,
+        /([가-힣A-Za-z]{2,15})(?:\s+기업|\s+회사)/
     ];
+
+    // searchQuery가 있으면 추가 패턴으로 사용
+    if (searchQuery && searchQuery.trim()) {
+        patterns.splice(1, 0, new RegExp(`(${searchQuery})`, 'i'));
+    }
 
     for (const pattern of patterns) {
         const match = title.match(pattern);
         if (match) return match[1].trim();
     }
 
-    return searchQuery;
+    // searchQuery가 없으면 첫 번째 패턴 매치 결과 또는 기본값 반환
+    const defaultMatch = title.match(/([가-힣A-Za-z]{2,10})/);
+    return defaultMatch ? defaultMatch[1] : (searchQuery || '기업명 미상');
 }
 
 function inferIndustry(text) {
