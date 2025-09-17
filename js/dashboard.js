@@ -196,20 +196,35 @@ async function searchCompanies() {
 
         updateSearchStatus('API 데이터 수집 중...', true);
 
-        const apiResults = await FirebaseAPI.searchAllAPIs(searchParams);
-        console.log('API 검색 결과:', apiResults);
+        const apiResponse = await FirebaseAPI.searchAllAPIs(searchParams);
+        console.log('API 검색 결과:', apiResponse);
+        console.log('응답 구조 분석:', {
+            success: apiResponse.success,
+            hasResults: !!apiResponse.results,
+            resultsLength: apiResponse.results?.length || 0,
+            resultSources: apiResponse.results?.map(r => r.source) || []
+        });
 
         // 결과 데이터 처리
         allCompanies = [];
 
-        if (apiResults.success) {
-            const { newsData, blogData, dartData } = apiResults.data;
+        if (apiResponse.success && apiResponse.results) {
+            // API 결과에서 source별로 데이터 추출
+            const newsResult = apiResponse.results.find(r => r.source === 'naver_news');
+            const blogResult = apiResponse.results.find(r => r.source === 'naver_blog');
+            const dartResult = apiResponse.results.find(r => r.source === 'dart');
+
+            const newsData = newsResult?.data || null;
+            const blogData = blogResult?.data || null;
+            const dartData = dartResult?.data || null;
+
+            console.log('추출된 데이터:', { newsData: !!newsData, blogData: !!blogData, dartData: !!dartData });
 
             // 수집된 데이터를 기반으로 기업 정보 생성
             const companies = await processAPIResults(newsData, blogData, dartData, searchQuery);
             allCompanies = companies;
         } else {
-            console.error('API 검색 실패:', apiResults.error);
+            console.error('API 검색 실패:', apiResponse.error || 'No results found');
             // 실패시 기본 검색 시도
             allCompanies = await performFallbackSearch(searchQuery);
         }
@@ -225,9 +240,31 @@ async function searchCompanies() {
 
     } catch (error) {
         console.error('검색 중 오류:', error);
-        updateSearchStatus('검색 중 오류가 발생했습니다.', false);
-        allCompanies = [];
-        displayResults();
+        console.error('오류 상세 정보:', {
+            message: error.message,
+            stack: error.stack,
+            searchQuery,
+            selectedIndustry,
+            selectedLocation
+        });
+
+        updateSearchStatus('검색 중 오류 발생 - 폴백 검색 시도 중...', true);
+
+        try {
+            // 자동으로 폴백 검색 실행
+            console.log('자동 폴백 검색 시작');
+            allCompanies = await performFallbackSearch(searchQuery);
+            applyFilters();
+            displayResults();
+            updateStats();
+            updateSearchStatus(`폴백 검색 완료 - ${allCompanies.length}개 기업 발견`, false);
+        } catch (fallbackError) {
+            console.error('폴백 검색도 실패:', fallbackError);
+            updateSearchStatus('검색 실패 - 다시 시도해주세요.', false);
+            allCompanies = [];
+            displayResults();
+            updateStats();
+        }
     } finally {
         isSearching = false;
     }
@@ -339,15 +376,50 @@ async function performFallbackSearch(searchQuery) {
             newsPromise, blogPromise, dartPromise
         ]);
 
-        const newsData = newsResult.status === 'fulfilled' ? newsResult.value : null;
-        const blogData = blogResult.status === 'fulfilled' ? blogResult.value : null;
-        const dartData = dartResult.status === 'fulfilled' ? dartResult.value : null;
+        // 각 API 응답에서 적절한 데이터 추출
+        const newsData = newsResult.status === 'fulfilled' ? (newsResult.value?.data || newsResult.value) : null;
+        const blogData = blogResult.status === 'fulfilled' ? (blogResult.value?.data || blogResult.value) : null;
+        const dartData = dartResult.status === 'fulfilled' ? (dartResult.value?.data || dartResult.value) : null;
 
-        return await processAPIResults(newsData, blogData, dartData, searchQuery);
+        console.log('폴백 검색 결과:', { newsData: !!newsData, blogData: !!blogData, dartData: !!dartData });
+
+        const companies = await processAPIResults(newsData, blogData, dartData, searchQuery);
+
+        // 검색 결과가 없으면 최소한의 기본 정보 반환
+        if (companies.length === 0) {
+            return [{
+                name: searchQuery,
+                industry: '정보 수집 필요',
+                address: '주소 조회 필요',
+                district: '지역 미상',
+                employee_count: null,
+                business_type: '분류 필요',
+                risk_score: 50,
+                prediction: '추가 분석 필요',
+                signals: ['검색 기반 기본 정보'],
+                last_update: new Date().toISOString(),
+                fallback: true
+            }];
+        }
+
+        return companies;
 
     } catch (error) {
         console.error('폴백 검색 실패:', error);
-        return [];
+        // 완전 실패 시에도 기본 정보 반환
+        return [{
+            name: searchQuery,
+            industry: '정보 없음',
+            address: '정보 없음',
+            district: '정보 없음',
+            employee_count: null,
+            business_type: '정보 없음',
+            risk_score: 0,
+            prediction: '데이터 수집 실패',
+            signals: ['검색 실패'],
+            last_update: new Date().toISOString(),
+            error: true
+        }];
     }
 }
 
@@ -476,27 +548,44 @@ function displayResults() {
 
     if (filteredCompanies.length === 0) {
         resultsContainer.innerHTML = `
-            <div class="no-results">
-                <p>검색 결과가 없습니다.</p>
-                <p>다른 검색어나 필터 조건을 시도해보세요.</p>
+            <div class="col-12">
+                <div class="alert alert-info text-center" role="alert">
+                    <h4 class="alert-heading">🔍 검색 결과가 없습니다</h4>
+                    <p>입력하신 검색 조건에 맞는 기업을 찾을 수 없습니다.</p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>다음 사항을 확인해보세요:</strong><br>
+                        • 기업명 철자가 정확한지 확인<br>
+                        • 필터 조건을 완화하여 재검색<br>
+                        • 다른 검색어로 시도
+                    </p>
+                </div>
             </div>
         `;
         return;
     }
 
     resultsContainer.innerHTML = filteredCompanies.map(company => `
-        <div class="company-card" onclick="showCompanyDetail('${company.name}')">
-            <div class="company-header">
-                <h3 class="company-name">${company.name}</h3>
-                <div class="risk-score ${getRiskLevel(company.risk_score)}">${company.risk_score}</div>
-            </div>
-            <div class="company-info">
-                <p class="industry">${company.industry}</p>
-                <p class="address">${company.address}</p>
-                <p class="prediction">${company.prediction}</p>
-            </div>
-            <div class="company-signals">
-                ${company.signals.map(signal => `<span class="signal-tag">${signal}</span>`).join('')}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card company-card h-100" onclick="showCompanyDetail('${company.name}')" style="cursor: pointer;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 company-name">${company.name}</h5>
+                    <span class="badge bg-${getRiskBadgeColor(company.risk_score)} risk-score">${company.risk_score}</span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <strong>업종:</strong> ${company.industry}<br>
+                        <strong>위치:</strong> ${company.address}<br>
+                        <strong>예측:</strong> ${company.prediction}
+                    </p>
+                    ${company.fallback ? '<small class="text-muted">⚠️ 제한된 정보</small>' : ''}
+                    ${company.error ? '<small class="text-danger">❌ 데이터 수집 실패</small>' : ''}
+                </div>
+                <div class="card-footer">
+                    <div class="company-signals">
+                        ${company.signals.map(signal => `<span class="badge bg-secondary me-1">${signal}</span>`).join('')}
+                    </div>
+                </div>
             </div>
         </div>
     `).join('');
@@ -525,6 +614,13 @@ function getRiskLevel(score) {
     if (score >= 80) return 'high-risk';
     if (score >= 60) return 'medium-risk';
     return 'low-risk';
+}
+
+// 위험도 배지 색상 계산
+function getRiskBadgeColor(score) {
+    if (score >= 80) return 'danger';
+    if (score >= 60) return 'warning';
+    return 'success';
 }
 
 // 기업 상세 정보 표시
