@@ -6,8 +6,8 @@ let filteredCompanies = [];
 let currentModalCompany = null;
 let isSearching = false;
 
-// Firebase Functions 기본 URL
-const FIREBASE_FUNCTIONS_BASE_URL = 'https://us-central1-office-relocation-predic-df116.cloudfunctions.net';
+// Firebase Functions 기본 URL (전역 변수에서 가져오기)
+const FIREBASE_FUNCTIONS_BASE_URL = window.FIREBASE_FUNCTIONS_BASE_URL || 'https://us-central1-office-relocation-predic-df116.cloudfunctions.net';
 
 // Firebase Functions API 클래스
 class FirebaseAPI {
@@ -174,10 +174,10 @@ async function searchCompanies() {
         updateSearchStatus('검색 중...', true);
 
         // 검색 조건 수집
-        const searchQuery = document.getElementById('companySearch').value.trim();
-        const selectedIndustry = document.getElementById('industryFilter').value;
-        const selectedLocation = document.getElementById('locationFilter').value;
-        const riskRange = document.getElementById('riskRange').value;
+        const searchQuery = document.getElementById('companyNameInput').value.trim();
+        const selectedIndustry = document.getElementById('industrySelect').value;
+        const selectedLocation = document.getElementById('citySelect').value;
+        const riskRange = 50; // 기본값
 
         if (!searchQuery) {
             alert('검색할 기업명을 입력해주세요.');
@@ -429,37 +429,49 @@ function inferBusinessType(text) {
 
 // 검색 상태 업데이트
 function updateSearchStatus(message, isLoading) {
-    const statusElement = document.getElementById('searchStatus');
+    const statusElement = document.getElementById('collectionStatus');
+    const spinnerElement = document.getElementById('statusSpinner');
+
     if (statusElement) {
         statusElement.textContent = message;
-        statusElement.className = isLoading ? 'searching' : 'completed';
     }
 
-    const searchButton = document.querySelector('.search-btn');
-    if (searchButton) {
-        searchButton.disabled = isLoading;
-        searchButton.textContent = isLoading ? '검색 중...' : '검색';
+    if (spinnerElement) {
+        spinnerElement.style.display = isLoading ? 'inline-block' : 'none';
     }
+
+    // HTML에 onclick으로 정의된 검색 버튼을 찾아서 비활성화
+    const searchButtons = document.querySelectorAll('button[onclick*="searchCompanies"]');
+    searchButtons.forEach(button => {
+        button.disabled = isLoading;
+        if (isLoading) {
+            button.innerHTML = '🔄 검색 중...';
+        } else {
+            button.innerHTML = '🔍 검색';
+        }
+    });
 }
 
 // 필터 적용
 function applyFilters() {
-    const selectedIndustry = document.getElementById('industryFilter').value;
-    const selectedLocation = document.getElementById('locationFilter').value;
-    const riskRange = document.getElementById('riskRange').value;
+    const selectedIndustry = document.getElementById('industrySelect').value;
+    const selectedLocation = document.getElementById('citySelect').value;
+    const selectedDistrict = document.getElementById('districtSelect')?.value || '';
+    const riskRange = 50; // 기본값
 
     filteredCompanies = allCompanies.filter(company => {
         const industryMatch = !selectedIndustry || company.industry.includes(selectedIndustry);
         const locationMatch = !selectedLocation || company.district.includes(selectedLocation);
+        const districtMatch = !selectedDistrict || company.address.includes(selectedDistrict);
         const riskMatch = company.risk_score >= parseInt(riskRange);
 
-        return industryMatch && locationMatch && riskMatch;
+        return industryMatch && locationMatch && districtMatch && riskMatch;
     });
 }
 
 // 결과 표시
 function displayResults() {
-    const resultsContainer = document.getElementById('companyResults');
+    const resultsContainer = document.getElementById('companyList');
     if (!resultsContainer) return;
 
     if (filteredCompanies.length === 0) {
@@ -493,18 +505,19 @@ function displayResults() {
 // 통계 업데이트
 function updateStats() {
     const totalCount = document.getElementById('totalCompanies');
+    const analyzedCount = document.getElementById('analyzedCompanies');
     const highRiskCount = document.getElementById('highRiskCompanies');
-    const avgRiskScore = document.getElementById('avgRiskScore');
+    const statusElement = document.getElementById('collectionStatus');
 
     if (totalCount) totalCount.textContent = filteredCompanies.length;
+    if (analyzedCount) analyzedCount.textContent = filteredCompanies.length;
 
     const highRisk = filteredCompanies.filter(c => c.risk_score >= 70).length;
     if (highRiskCount) highRiskCount.textContent = highRisk;
 
-    const avgRisk = filteredCompanies.length > 0
-        ? Math.round(filteredCompanies.reduce((sum, c) => sum + c.risk_score, 0) / filteredCompanies.length)
-        : 0;
-    if (avgRiskScore) avgRiskScore.textContent = avgRisk;
+    if (statusElement) {
+        statusElement.textContent = filteredCompanies.length > 0 ? '검색 완료' : '대기 중';
+    }
 }
 
 // 위험도 레벨 계산
@@ -615,20 +628,61 @@ function closeModal() {
     currentModalCompany = null;
 }
 
+// 지역 데이터
+const LOCATION_DATA = {
+    '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+    '부산광역시': ['강서구', '금정구', '기장군', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'],
+    '대구광역시': ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+    '인천광역시': ['강화군', '계양구', '미추홀구', '남동구', '동구', '부평구', '서구', '연수구', '옹진군', '중구'],
+    '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
+    '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
+    '울산광역시': ['남구', '동구', '북구', '울주군', '중구'],
+    '경기도': ['가평군', '고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시', '남양주시', '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시', '안양시', '양주시', '양평군', '여주시', '연천군', '오산시', '용인시', '의왕시', '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'],
+    '강원도': ['강릉시', '고성군', '동해시', '삼척시', '속초시', '양구군', '양양군', '영월군', '원주시', '인제군', '정선군', '철원군', '춘천시', '태백시', '평창군', '홍천군', '화천군', '횡성군'],
+    '충청북도': ['괴산군', '단양군', '보은군', '영동군', '옥천군', '음성군', '제천시', '진천군', '청주시', '충주시', '증평군'],
+    '충청남도': ['계룡시', '공주시', '금산군', '논산시', '당진시', '보령시', '부여군', '서산시', '서천군', '아산시', '예산군', '천안시', '청양군', '태안군', '홍성군'],
+    '전라북도': ['고창군', '군산시', '김제시', '남원시', '무주군', '부안군', '순창군', '완주군', '익산시', '임실군', '장수군', '전주시', '정읍시', '진안군'],
+    '전라남도': ['강진군', '고흥군', '곡성군', '광양시', '구례군', '나주시', '담양군', '목포시', '무안군', '보성군', '순천시', '신안군', '여수시', '영광군', '영암군', '완도군', '장성군', '장흥군', '진도군', '함평군', '해남군', '화순군'],
+    '경상북도': ['경산시', '경주시', '고령군', '구미시', '군위군', '김천시', '문경시', '봉화군', '상주시', '성주군', '안동시', '영덕군', '영양군', '영주시', '영천시', '예천군', '울릉군', '울진군', '의성군', '청도군', '청송군', '칠곡군', '포항시'],
+    '경상남도': ['거제시', '거창군', '고성군', '김해시', '남해군', '밀양시', '사천시', '산청군', '양산시', '의령군', '진주시', '창녕군', '창원시', '통영시', '하동군', '함안군', '함양군', '합천군'],
+    '제주특별자치도': ['서귀포시', '제주시']
+};
+
 // 초기화
 function initializeLocationSelectors() {
-    const locationFilter = document.getElementById('locationFilter');
-    if (locationFilter) {
-        const locations = [
-            '서울특별시', '부산광역시', '대구광역시', '인천광역시',
-            '광주광역시', '대전광역시', '울산광역시', '경기도',
-            '강원도', '충청북도', '충청남도', '전라북도',
-            '전라남도', '경상북도', '경상남도', '제주특별자치도'
-        ];
+    const citySelect = document.getElementById('citySelect');
+    const districtSelect = document.getElementById('districtSelect');
 
-        locationFilter.innerHTML = '<option value="">전체 지역</option>' +
-            locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+    if (citySelect) {
+        const provinces = Object.keys(LOCATION_DATA);
+        citySelect.innerHTML = '<option value="">시/도 선택</option>' +
+            provinces.map(province => `<option value="${province}">${province}</option>`).join('');
+
+        // 시/도 변경 시 구/군 업데이트
+        citySelect.addEventListener('change', function() {
+            updateDistrictOptions(this.value);
+        });
     }
+
+    // 구/군 선택기 초기화
+    if (districtSelect) {
+        districtSelect.innerHTML = '<option value="">구/군 선택</option>';
+    }
+}
+
+// 구/군 옵션 업데이트
+function updateDistrictOptions(selectedProvince) {
+    const districtSelect = document.getElementById('districtSelect');
+    if (!districtSelect) return;
+
+    if (!selectedProvince || !LOCATION_DATA[selectedProvince]) {
+        districtSelect.innerHTML = '<option value="">구/군 선택</option>';
+        return;
+    }
+
+    const districts = LOCATION_DATA[selectedProvince];
+    districtSelect.innerHTML = '<option value="">구/군 선택</option>' +
+        districts.map(district => `<option value="${district}">${district}</option>`).join('');
 }
 
 // 이벤트 리스너
@@ -638,16 +692,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 위치 선택기 초기화
     initializeLocationSelectors();
 
-    // 검색 버튼 이벤트
-    const searchBtn = document.querySelector('.search-btn');
-    if (searchBtn) {
-        searchBtn.addEventListener('click', searchCompanies);
-    }
+    // 검색 버튼 이벤트 (HTML의 onclick으로 처리됨)
 
     // Enter 키 검색
-    const searchInput = document.getElementById('companySearch');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
+    const companyNameInput = document.getElementById('companyNameInput');
+    if (companyNameInput) {
+        companyNameInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 searchCompanies();
             }
@@ -655,7 +705,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 필터 변경 이벤트
-    ['industryFilter', 'locationFilter', 'riskRange'].forEach(id => {
+    ['industrySelect', 'citySelect', 'districtSelect'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('change', function() {
