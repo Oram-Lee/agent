@@ -33,7 +33,7 @@ const API_ENDPOINTS = {
 
 // 네이버 뉴스 검색 API 프록시
 exports.searchNaverNews = functions.https.onCall(async (data, context) => {
-    console.log('📰 네이버 뉴스 API 호출 시작:', data);
+    console.log('📰 네이버 뉴스 API 호출 시작:', JSON.stringify(data, null, 2));
 
     try {
         const { query, display = 50, start = 1, sort = 'date' } = data;
@@ -82,7 +82,7 @@ exports.searchNaverNews = functions.https.onCall(async (data, context) => {
 
 // 네이버 블로그 검색 API 프록시
 exports.searchNaverBlog = functions.https.onCall(async (data, context) => {
-    console.log('📝 네이버 블로그 API 호출 시작:', data);
+    console.log('📝 네이버 블로그 API 호출 시작:', JSON.stringify(data, null, 2));
 
     try {
         const { query, display = 30, start = 1, sort = 'date' } = data;
@@ -189,12 +189,20 @@ exports.searchDartAPI = functions.https.onCall(async (data, context) => {
 
 // 통합 기업 검색 함수 (모든 API를 병렬로 호출)
 exports.searchAllAPIs = functions.https.onCall(async (data, context) => {
-    console.log('🔍 통합 API 검색 시작:', data);
+    console.log('🔍 통합 API 검색 시작:', JSON.stringify(data, null, 2));
 
     try {
-        const { query, companyName, industry, city } = data;
+        // 파라미터 안전하게 추출 (모두 optional)
+        const {
+            query = '',
+            companyName = '',
+            industry = '',
+            city = ''
+        } = data || {};
 
-        // 검색 쿼리 구성
+        console.log('🔍 추출된 파라미터:', { query, companyName, industry, city });
+
+        // 검색 쿼리 구성 (빈 값도 OK)
         const searchQuery = buildSearchQuery(query, companyName, industry, city);
         console.log('🔍 최종 검색 쿼리:', searchQuery);
 
@@ -252,11 +260,16 @@ exports.searchAllAPIs = functions.https.onCall(async (data, context) => {
         };
 
     } catch (error) {
-        console.error('❌ 통합 API 검색 오류:', error.message);
+        // 에러 로깅 개선
+        console.error('❌ 통합 API 검색 오류 상세:', {
+            message: error.message,
+            stack: error.stack,
+            data: data
+        });
 
         throw new functions.https.HttpsError(
             'internal',
-            `Integrated search error: ${error.message}`
+            error.message || 'Integrated search error'
         );
     }
 });
@@ -326,17 +339,18 @@ async function searchDartInternal(corpName) {
 function buildSearchQuery(query, companyName, industry, city) {
     let searchTerms = [];
 
-    if (query) searchTerms.push(query);
-    if (companyName) searchTerms.push(companyName);
-    if (industry) searchTerms.push(industry);
-    if (city) searchTerms.push(city);
+    // 각 파라미터 안전하게 처리
+    if (query && query.trim()) searchTerms.push(query.trim());
+    if (companyName && companyName.trim()) searchTerms.push(companyName.trim());
+    if (industry && industry.trim()) searchTerms.push(industry.trim());
+    if (city && city.trim()) searchTerms.push(city.trim());
 
-    // 아무 조건도 없으면 기본 검색어 사용
+    // 검색어가 전혀 없으면 기본값 사용
     if (searchTerms.length === 0) {
-        searchTerms.push('기업', '회사');
+        searchTerms = ['기업', '회사'];
     }
 
-    // 기본 키워드 추가
+    // 기본 키워드는 항상 추가
     searchTerms.push('사옥', '이전', '확장');
 
     return searchTerms.join(' ');
@@ -558,6 +572,88 @@ exports.searchDartAPIHttp = functions.https.onRequest(async (req, res) => {
 
         } catch (error) {
             console.error('❌ DART HTTP API 오류:', error.message);
+            res.status(500).json({
+                success: false,
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+});
+
+// 통합 API 검색 HTTP 함수 (CORS 지원)
+exports.searchAllAPIsHttp = functions.https.onRequest(async (req, res) => {
+    return cors(req, res, async () => {
+        try {
+            console.log('🔍 통합 API HTTP 검색:', JSON.stringify(req.body || req.query, null, 2));
+
+            const {
+                query = '',
+                companyName = '',
+                industry = '',
+                city = ''
+            } = req.method === 'POST' ? req.body : req.query;
+
+            console.log('🔍 HTTP 추출된 파라미터:', { query, companyName, industry, city });
+
+            // buildSearchQuery 사용
+            const searchQuery = buildSearchQuery(query, companyName, industry, city);
+            console.log('🔍 HTTP 최종 검색 쿼리:', searchQuery);
+
+            // 병렬 API 호출
+            const promises = [];
+
+            promises.push(
+                searchNaverNewsInternal(searchQuery).catch(error => ({
+                    source: 'naver_news',
+                    success: false,
+                    error: error.message
+                }))
+            );
+
+            promises.push(
+                searchNaverBlogInternal(searchQuery).catch(error => ({
+                    source: 'naver_blog',
+                    success: false,
+                    error: error.message
+                }))
+            );
+
+            if (companyName && companyName.trim()) {
+                promises.push(
+                    searchDartInternal(companyName.trim()).catch(error => ({
+                        source: 'dart',
+                        success: false,
+                        error: error.message
+                    }))
+                );
+            }
+
+            const results = await Promise.allSettled(promises);
+
+            const apiResults = results.map(result =>
+                result.status === 'fulfilled' ? result.value : {
+                    success: false,
+                    error: result.reason?.message
+                }
+            );
+
+            console.log('📊 HTTP 통합 검색 완료:', apiResults.length, '개 API 결과');
+
+            res.json({
+                success: true,
+                results: apiResults,
+                query: searchQuery,
+                timestamp: new Date().toISOString()
+            });
+
+        } catch (error) {
+            console.error('❌ 통합 API HTTP 오류:', {
+                message: error.message,
+                stack: error.stack,
+                body: req.body,
+                query: req.query
+            });
             res.status(500).json({
                 success: false,
                 error: error.message,

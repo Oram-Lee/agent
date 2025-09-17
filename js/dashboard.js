@@ -58,13 +58,31 @@ class FirebaseAPI {
     }
 
     static async searchAllAPIs(searchParams) {
-        const url = `${FIREBASE_FUNCTIONS_BASE_URL}/searchAllAPIs`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(searchParams)
-        });
-        return await response.json();
+        // HTTP 엔드포인트 사용 (더 안정적)
+        const url = `${FIREBASE_FUNCTIONS_BASE_URL}/searchAllAPIsHttp`;
+
+        try {
+            console.log('📡 API 호출 시작:', url, searchParams);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(searchParams)
+            });
+
+            if (!response.ok) {
+                console.error('API 응답 에러:', response.status, response.statusText);
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'API call failed');
+            }
+
+            const result = await response.json();
+            console.log('📡 API 응답 성공:', result);
+            return result;
+        } catch (error) {
+            console.error('searchAllAPIs 호출 실패:', error);
+            throw error;
+        }
     }
 }
 
